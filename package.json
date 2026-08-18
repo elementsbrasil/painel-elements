@@ -1,0 +1,7 @@
+{
+  "name": "elements-painel-comercial-live",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Painel comercial video wall com dados buscados via Netlify Function em vez de HTML estático.",
+  "dependencies": {}
+}
