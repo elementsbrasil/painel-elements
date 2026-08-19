@@ -2,10 +2,11 @@
   publish = "."
   functions = "netlify/functions"
 
+[functions]
+  node_bundler = "esbuild"
+
+# A TV precisa nunca servir versão em cache do HTML
 [[headers]]
   for = "/*"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
-
-[functions]
-  node_bundler = "esbuild"
