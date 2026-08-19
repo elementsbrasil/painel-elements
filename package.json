@@ -1,7 +1,9 @@
 {
-  "name": "elements-painel-comercial-live",
+  "name": "elements-painel-comercial",
   "private": true,
-  "version": "0.1.0",
-  "description": "Painel comercial video wall com dados buscados via Netlify Function em vez de HTML estático.",
-  "dependencies": {}
+  "version": "1.0.0",
+  "description": "Painel comercial video wall — consulta SharePoint (planilha) e BigQuery ao vivo.",
+  "dependencies": {
+    "@google-cloud/bigquery": "^7.9.0"
+  }
 }
