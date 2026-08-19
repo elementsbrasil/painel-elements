@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Elements · Painel Comercial</title>
+<title>Elements · Painel Comercial · Video Wall 4×3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -16,225 +16,265 @@
     --purple:#6F00FF; --lilac:#B47CFF;
     --ink:#FFFFFF; --ink2:#C6C6C6; --muted:#8A8A92; --muted2:#5C5C66;
   }
+  html{overflow:hidden}
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{background:var(--bg);overflow:hidden;height:100%}
-  body{font-family:'Outfit',Helvetica,Arial,sans-serif;color:var(--ink2)}
+  html,body{width:100%;height:100%;background:var(--bg)}
+  body{font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:300;color:var(--ink2);
+    overflow:hidden;position:relative}
 
-  /* ===== Canvas fixo 1920x1080 + escala "cover" ===== */
-  .wall{
-    position:fixed; top:50%; left:50%;
-    width:1920px; height:1080px;
+  /* ===== WALL (12 TVs de 65" · 4 linhas × 3 colunas) =====
+     Canvas travado em Full HD (1920x1080), o tamanho real do sinal de
+     entrega. Em vez de confiar em 100vw/100vh (que pode vir errado
+     dependendo do app/dispositivo que abre o link — foi isso que causou o
+     "ficou quadrado"), a .wall tem tamanho FIXO em pixels e é escalada por
+     JS (scale "cover", sem cortar em bars) pra preencher a janela real,
+     seja qual for. Sem letterbox, sem squish de proporção — só um
+     reposicionamento de escala 1:1 sempre que a janela já for 1920x1080. */
+  .wall{position:fixed;top:50%;left:50%;width:1920px;height:1080px;
     transform-origin:50% 50%;
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    grid-template-rows:repeat(4,1fr);
-    container-type:size; container-name:wall;
-    background:radial-gradient(ellipse 75% 68% at 50% 42%,
-      #3A1A80 0%, #170A3D 32%, #0A0512 58%, var(--bg) 82%);
-  }
-  .wall::before{
-    content:''; position:absolute; top:0; left:0; width:100%; height:270px;
-    background:radial-gradient(ellipse 60% 100% at 50% 0%, rgba(111,0,255,.17), transparent 70%);
-    pointer-events:none; z-index:0;
-  }
+    background:radial-gradient(ellipse 75% 68% at 50% 42%,#3A1A80 0%,#170A3D 32%,#0A0512 58%,var(--bg) 82%);
+    overflow:hidden;
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);
+    container-type:size;container-name:wall}
+  .wall::before{content:'';position:absolute;left:50%;top:-6cqh;width:40cqw;height:32cqh;
+    transform:translateX(-50%);pointer-events:none;z-index:0;
+    background:radial-gradient(ellipse at center,rgba(111,0,255,.17) 0%,rgba(111,0,255,.05) 40%,transparent 70%)}
 
-  .cell{
-    container-type:size; container-name:tv;
-    display:flex; flex-direction:column;
-    padding:5.6cqh 3.2cqw;
-    position:relative; overflow:hidden; z-index:1;
-  }
-  .cell.br{ border-right:3px solid var(--line); }
-  .cell.bb{ border-bottom:3px solid var(--line); }
+  /* each cell === one physical 65" TV. container-type:size makes cqh/cqw inside a cell
+     relative to THAT cell's own box (≈ same scale as a single 16:9 screen).
+     padding ≈ margem de segurança (~40px numa parede 3840x2880 nativa) — nada
+     crítico encosta na emenda entre TVs. */
+  .cell{position:relative;overflow:hidden;min-width:0;min-height:0;
+    container-type:size;container-name:tv;
+    display:flex;flex-direction:column;
+    padding:5.6cqh 3.2cqw}
+  .cell.br{border-right:3px solid var(--line)}
+  .cell.bb{border-bottom:3px solid var(--line)}
 
-  /* ===== Tipografia base ===== */
-  .eyebrow{
-    font-weight:600; text-transform:uppercase; letter-spacing:.2em;
-    color:var(--muted); font-size:clamp(9.3px, 3.641cqh, 23.7px);
-    flex-shrink:0; margin-bottom:.7em;
-  }
-  .pct-lab{ font-weight:400; color:var(--muted2); letter-spacing:.12em;
-    text-transform:uppercase; font-size:clamp(7.5px, 2.7cqh, 15px); margin-top:.25em; }
-  .src{ font-size:clamp(7px, 2.2cqh, 12px); color:var(--muted2);
-    text-transform:uppercase; letter-spacing:.1em; }
+  .eyebrow{font-family:'Outfit';font-weight:600;letter-spacing:.2em;color:var(--muted);
+    text-transform:uppercase;font-size:clamp(9.3px,3.641cqh,23.7px)}
 
-  /* ===== Hero ===== */
-  .hero-body{ flex:1; display:flex; flex-direction:column; justify-content:center; min-height:0; }
-  .hero-num{
-    font-family:'Red Hat Display'; font-weight:800; color:#fff;
-    font-size:clamp(25.2px, 12.241cqh, 101.2px); line-height:1;
-  }
-  .hero-sub{ font-size:clamp(8.5px, 3.1cqh, 19px); color:var(--muted); margin-top:.6em; }
-  .bar-track{ height:clamp(4px,2.2cqh,10px); background:var(--line2); border-radius:6px;
-    margin-top:1em; overflow:hidden; flex-shrink:0; }
-  .bar-fill{ height:100%; background:linear-gradient(90deg,var(--purple),var(--lilac));
-    border-radius:6px; }
-  .hero-pct{ font-family:'Red Hat Display'; font-weight:800; color:var(--lilac);
-    font-size:clamp(11px, 4.2cqh, 26px); margin-top:.55em; }
+  /* ===== R1C2 — MARCA =====
+     Palavra "elements." reduzida à metade do tamanho anterior (era ~60% do
+     quadrante) e slogan escalado na mesma proporção pra manter a hierarquia
+     visual. "elements." e "viva sem medo" em branco; só o ponto final fica
+     roxo (com glow), como destaque de marca. */
+  .id-cell{align-items:center;justify-content:center;text-align:center;gap:1.6cqh}
+  .id-cell .word{font-family:'Red Hat Display';font-weight:800;font-size:clamp(47.5px,27.15cqh,112.5px);
+    color:#fff;letter-spacing:.01em;line-height:1}
+  .id-cell .word .dot{color:var(--purple);text-shadow:0 0 22px rgba(111,0,255,.75)}
+  .id-cell .slogan{font-family:'Red Hat Display';font-style:italic;font-weight:700;
+    font-size:clamp(22.5px,12.06cqh,50.5px);letter-spacing:.03em;color:#fff;
+    text-transform:none;line-height:1}
 
-  /* ===== Marca ===== */
-  .id-cell{ align-items:center; justify-content:center; text-align:center; }
-  .id-cell .word{
-    font-family:'Red Hat Display'; font-weight:800; color:#fff;
-    font-size:clamp(47.5px, 27.15cqh, 112.5px); line-height:1;
-  }
-  .id-cell .word .dot{ color:var(--purple); text-shadow:0 0 26px rgba(111,0,255,.95); }
-  .id-cell .slogan{
-    font-family:'Red Hat Display'; font-style:italic; font-weight:700; color:#fff;
-    font-size:clamp(22.5px, 12.06cqh, 50.5px); margin-top:.35em;
-  }
+  /* ===== R1C1 / R1C3 — HERO =====
+     R1C1 (Total geral) e R1C3 (% projetado) com o número principal reduzido
+     em duas etapas a pedido do usuário (era ~32%, depois ~16%, agora ~8% da
+     altura do quadrante — proporção parecida com os valores de R2). */
+  .hero-cell{justify-content:center}
+  .hero-cell.right{align-items:flex-end;text-align:right}
+  .hero-num .big{font-family:'Red Hat Display';font-weight:800;color:#fff;line-height:.98;
+    letter-spacing:-.02em;font-size:clamp(22.1px,12.241cqh,101.2px);margin-top:1cqh}
+  .hero-num .big .cur{font-size:.42em;font-weight:700;color:var(--muted);margin-right:.12em;vertical-align:.18em}
+  .hero-num .sub{font-size:clamp(10.2px,3.641cqh,23.7px);color:var(--muted);margin-top:.9cqh}
+  .hero-num .sub b{color:var(--ink2);font-weight:500}
+  .hero-bar{display:flex;align-items:center;gap:1.4cqw;margin-top:1.4cqh}
+  .bar{flex:1;height:1.3cqh;max-height:10px;min-height:5px;background:#141419;border:1px solid var(--line2);border-radius:20px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#6F00FF,#B47CFF);border-radius:20px}
+  .hero-bar .pct{font-family:'Red Hat Display';font-weight:700;color:var(--lilac);
+    font-size:clamp(12.1px,4.341cqh,33.0px);min-width:3.4em;text-align:right}
+  .hero-alc{display:flex;align-items:baseline;gap:.6cqw;margin-top:1.1cqh;flex-wrap:wrap}
+  .hero-alc .v{font-family:'Red Hat Display';font-weight:700;color:var(--lilac);font-size:clamp(11.1px,3.641cqh,23.7px)}
+  .hero-alc .l{font-size:clamp(8.8px,2.741cqh,17.6px);color:var(--muted)}
+  .hero-ytd .val{font-family:'Red Hat Display';font-weight:800;color:#fff;
+    font-size:clamp(18.9px,9.341cqh,90px);letter-spacing:-.01em;margin-top:1cqh}
+  .hero-ytd .sub{font-size:clamp(10.2px,3.641cqh,23.7px);color:var(--muted);margin-top:.9cqh;max-width:90%}
+  .hero-ytd .sub b{color:var(--lilac);font-weight:500}
 
-  /* ===== Canal (evolução) ===== */
-  .canal-head{ flex-shrink:0; }
-  .canal-head h3{
-    font-family:'Red Hat Display'; font-weight:700; color:#fff;
-    font-size:clamp(12.1px, 4.341cqh, 28.4px); line-height:1.1;
-  }
-  .canal-val{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
-    font-size:clamp(17px, 7.4cqh, 54px); line-height:1; margin-top:.15em; }
-  .canal-meta{ font-size:clamp(7.5px,2.8cqh,16px); color:var(--muted); margin-top:.25em; }
-  .canal-pct{ font-family:'Red Hat Display'; font-weight:800; color:var(--lilac);
-    font-size:clamp(13px,4.7cqh,30px); margin-top:.45em; }
-  .chart{ flex:1; min-height:0; margin-top:.7em; }
-  .chart svg{ width:100%; height:100%; display:block; }
+  /* ===== R2 — EVOLUÇÃO ===== */
+  .canal-cell{justify-content:flex-start}
+  .canal-stat{display:flex;align-items:baseline;gap:.7cqw;flex-wrap:wrap}
+  .canal-stat h3{font-family:'Red Hat Display';font-weight:700;color:#fff;font-size:clamp(12.1px,4.341cqh,28.4px)}
+  .canal-stat .val{font-family:'Red Hat Display';font-weight:800;color:#fff;
+    font-size:clamp(14.4px,5.341cqh,39.2px);letter-spacing:-.01em}
+  .canal-stat .val .cur{font-size:.5em;color:var(--muted);font-weight:700;margin-right:.1em}
+  .canal-stat .meta{font-size:clamp(9.3px,3.241cqh,20.6px);color:var(--muted)}
+  .pct-wrap{margin-left:auto;text-align:right;align-self:baseline}
+  .canal-stat .pct{font-family:'Red Hat Display';font-weight:700;color:var(--lilac);font-size:clamp(10.6px,3.741cqh,23.7px)}
+  .pct-lab{font-size:clamp(6.0px,1.991cqh,12.2px);color:var(--muted2);letter-spacing:.08em;text-transform:uppercase;margin-top:.15em}
+  .canal-ytd{font-size:clamp(9.0px,3.041cqh,19.8px);color:var(--muted2);margin-top:.5cqh}
+  .canal-ytd b{color:var(--muted);font-weight:500}
+  .canal-alc{font-size:clamp(9.0px,3.041cqh,19.8px);color:var(--muted2);margin-top:.3cqh}
+  .canal-alc b{color:var(--lilac);font-weight:700}
+  .legend{display:flex;align-items:center;gap:1.6cqw;font-size:clamp(9.0px,2.941cqh,19.8px);color:var(--muted);margin-top:.6cqh}
+  .legend span{display:inline-flex;align-items:center;gap:.5em}
+  .legend .sw{width:12px;height:8px;border-radius:2px;background:linear-gradient(180deg,#C9A7FF,#6F00FF)}
+  .legend .sw.dash{width:14px;height:0;border-top:3px dashed var(--muted2);background:none;border-radius:0}
+  .chartwrap{position:relative;flex:1;margin-top:1cqh;min-height:0}
+  .chartglow{position:absolute;inset:-15% -10% 0 -10%;pointer-events:none;
+    background:radial-gradient(ellipse 60% 55% at 50% 10%,rgba(111,0,255,.16) 0%,transparent 72%)}
+  .chartwrap svg{position:relative;width:100%;height:100%;display:block;overflow:visible}
+  .mlabel{font-size:9px;fill:var(--muted2);font-family:'Outfit'}
+  .barlabel{font-size:8.5px;fill:var(--ink2);font-family:'Outfit';font-weight:600}
 
-  /* ===== Listas (ranking / itens) ===== */
-  .list-head{ display:flex; justify-content:space-between; align-items:flex-start;
-    flex-shrink:0; gap:.5em; }
-  .list-head h3{ font-family:'Red Hat Display'; font-weight:700; color:#fff;
-    font-size:clamp(11.5px, 4.1cqh, 26px); line-height:1.1; }
-  .head-stat{ text-align:right; flex-shrink:0; }
-  .head-stat .n{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
-    font-size:clamp(11px, 4cqh, 25px); line-height:1; }
-  .head-stat .l{ font-size:clamp(6.5px,2.2cqh,12px); color:var(--muted);
-    text-transform:uppercase; letter-spacing:.12em; margin-top:.2em; }
+  /* ===== R3 / R4 — cabeçalho de coluna ===== */
+  .qhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6cqh;flex-shrink:0;gap:.6cqw}
+  .qhead h3{font-family:'Red Hat Display';font-weight:700;color:#fff;font-size:clamp(12.1px,4.441cqh,29.9px)}
+  .live{display:inline-flex;align-items:center;gap:.4em;font-size:clamp(8.2px,2.841cqh,18.3px);letter-spacing:.14em;
+    color:var(--lilac);font-weight:600}
+  .live i{width:6px;height:6px;border-radius:50%;background:var(--lilac);box-shadow:0 0 8px var(--lilac);
+    animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
-  .lb{ list-style:none; margin-top:.85em; flex:1; min-height:0;
-    display:flex; flex-direction:column; gap:.5em; overflow:hidden; flex-shrink:1; }
-  .lb li{ display:flex; align-items:center; gap:.55em; }
-  .avatar{
-    width:clamp(15px, 5cqh, 32px); height:clamp(15px, 5cqh, 32px);
-    border-radius:50%; background:var(--line2); flex-shrink:0;
-    display:flex; align-items:center; justify-content:center;
-    font-weight:600; color:#fff; font-size:clamp(6.5px,2.3cqh,13px);
-  }
-  .lb li.top .avatar{ background:linear-gradient(135deg,var(--purple),var(--lilac)); }
-  .lb-txt{ flex:1; min-width:0; }
-  .lb-name{ font-weight:400; color:#fff; font-size:clamp(10.6px, 3.741cqh, 24.5px);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .lb li.top .lb-name{ font-weight:600; }
-  .lb-bar{ height:clamp(2px,1.1cqh,5px); background:var(--line2); border-radius:3px;
-    margin-top:.28em; overflow:hidden; }
-  .lb-bar i{ display:block; height:100%; background:var(--muted); border-radius:3px; }
-  .lb li.top .lb-bar i{ background:linear-gradient(90deg,var(--purple),var(--lilac)); }
-  .lb-val{ font-weight:500; color:var(--ink2); font-size:clamp(8.5px,3cqh,19px);
-    flex-shrink:0; }
-  .lb li.zero .lb-name, .lb li.zero .lb-val{ color:var(--muted2); }
+  /* leaderboard (R3 — Revenda/Corporativo) */
+  .qcell{gap:1.15cqh}
+  .lb{display:flex;flex-direction:column;justify-content:center;gap:1.05cqh;flex:1;min-height:0}
+  .lb-row{display:flex;align-items:center;gap:.9cqw;flex-shrink:0}
+  .lb-avatar{width:2.5em;height:2.5em;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    font-family:'Red Hat Display';font-weight:700;font-size:clamp(9.3px,3.341cqh,21.4px);
+    background:rgba(111,0,255,.14);border:1px solid rgba(111,0,255,.4);color:var(--lilac)}
+  .lb-row.p1 .lb-avatar{background:linear-gradient(135deg,#C9A7FF,#6F00FF);color:#fff;border:none;
+    box-shadow:0 0 14px rgba(111,0,255,.55)}
+  .lb-body{flex:1;min-width:0}
+  .lb-toprow{display:flex;align-items:baseline;justify-content:space-between;gap:.6em}
+  .lb-name{font-size:clamp(10.6px,3.741cqh,24.5px);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-weight:400}
+  .lb-row.p1 .lb-name{font-weight:600}
+  .lb-val{font-family:'Red Hat Display';font-weight:700;font-size:clamp(10.9px,3.841cqh,25.2px);color:var(--ink2);
+    white-space:nowrap}
+  .lb-row.p1 .lb-val{color:#fff}
+  .lb-bar{height:4px;background:#141419;border-radius:4px;overflow:hidden;margin-top:.4em}
+  .lb-bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#6F00FF,#C9A7FF)}
 
-  /* ===== Bloco de estatística fixa (nunca corta) ===== */
-  .stats{ flex-shrink:0; margin-top:.7em; display:flex; gap:4cqw; }
-  .stat .v{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
-    font-size:clamp(13px,5cqh,30px); line-height:1; }
-  .stat .v.lilac{ color:var(--lilac); }
-  .stat .l{ font-size:clamp(6.5px,2.3cqh,12.5px); color:var(--muted);
-    text-transform:uppercase; letter-spacing:.11em; margin-top:.28em; }
+  /* clientes novos — versão compacta no canto do cabeçalho (R3 — Revenda/Corporativo).
+     Movida do rodapé pro qhead pra dar prioridade de espaço à lista completa
+     de vendedores (.lb), que não pode mais cortar linha. */
+  .cli-mini{display:flex;align-items:center;gap:.55em;flex-shrink:0}
+  .donut-mini{position:relative;width:clamp(22px,5.6cqh,38px);height:clamp(22px,5.6cqh,38px);flex:none}
+  .donut-mini svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .donut-mini .center-mini{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:'Red Hat Display';font-weight:800;color:#fff;font-size:clamp(8.5px,2.541cqh,14.0px)}
+  .cli-mini-info{text-align:right;line-height:1.15}
+  .cli-mini-info .v{font-family:'Red Hat Display';font-weight:800;color:#fff;font-size:clamp(11.5px,3.441cqh,21.0px);white-space:nowrap}
+  .cli-mini-info .v span{color:var(--muted);font-weight:400;font-size:.72em}
+  .cli-mini-info .l{font-size:clamp(7.8px,2.241cqh,12.5px);color:var(--muted);letter-spacing:.09em;text-transform:uppercase;margin-top:.1em}
 
-  /* ===== Ritmo do mês (dias úteis) ===== */
-  .rhythm{ flex:1; min-height:0; display:flex; flex-direction:column;
-    justify-content:center; gap:3.4cqh; }
-  .rh-row .rh-top{ display:flex; justify-content:space-between; align-items:baseline; }
-  .rh-lab{ font-weight:600; color:#fff; font-size:clamp(9.5px,3.3cqh,21px); }
-  .rh-days{ font-size:clamp(8px,2.8cqh,16px); color:var(--muted); }
-  .rh-track{ height:clamp(4px,2cqh,9px); background:var(--line2); border-radius:6px;
-    margin-top:.45em; overflow:hidden; position:relative; }
-  .rh-fill{ height:100%; border-radius:6px; }
-  .rh-fill.time{ background:var(--muted); }
-  .rh-fill.sales{ background:linear-gradient(90deg,var(--purple),var(--lilac)); }
-  .rh-note{ font-size:clamp(7px,2.5cqh,13.5px); color:var(--muted2); margin-top:.35em; }
+  /* R3 Digital — regiões + sessões/conversão */
+  .rg-list{display:flex;flex-direction:column;flex-shrink:1;min-height:0;overflow:hidden}
+  .rg-item{display:flex;align-items:center;gap:.7em;padding:.5cqh 0;border-bottom:1px solid var(--line);
+    font-size:clamp(10.2px,3.541cqh,22.9px)}
+  .rg-item:last-child{border-bottom:none}
+  .rg-item .n{width:1.2em;flex:none;color:var(--muted2);font-family:'Red Hat Display';font-weight:700;font-size:.85em}
+  .rg-item .t{flex:1;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rg-item b{color:var(--lilac);font-family:'Red Hat Display';font-weight:700;white-space:nowrap}
+  .sess-stats{display:flex;gap:1.8cqw;padding-top:1.1cqh;border-top:2px dashed var(--line);flex-shrink:0}
+  .sess-stat{flex:1}
+  .sess-stat .v{font-family:'Red Hat Display';font-weight:800;color:#fff;font-size:clamp(15.2px,5.141cqh,39.2px);letter-spacing:-.01em}
+  .sess-stat .l{font-size:clamp(8.6px,2.841cqh,18.3px);letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:.3em}
 
-  /* ===== Conversão (meta vs atual) ===== */
-  .conv{ flex:1; min-height:0; display:flex; flex-direction:column;
-    justify-content:center; gap:4cqh; }
-  .conv-row .conv-top{ display:flex; justify-content:space-between; align-items:baseline; }
-  .conv-name{ font-weight:600; color:#fff; font-size:clamp(9.5px,3.3cqh,21px); }
-  .conv-val{ font-family:'Red Hat Display'; font-weight:800;
-    font-size:clamp(14px,5.4cqh,34px); line-height:1; }
-  .conv-val.ok{ color:var(--lilac); }
-  .conv-val.low{ color:#fff; }
-  .conv-meta{ font-size:clamp(7px,2.5cqh,13.5px); color:var(--muted); margin-top:.3em; }
-  .conv-track{ height:clamp(3px,1.5cqh,7px); background:var(--line2); border-radius:5px;
-    margin-top:.45em; overflow:hidden; }
-  .conv-track i{ display:block; height:100%; border-radius:5px;
-    background:linear-gradient(90deg,var(--purple),var(--lilac)); }
+  /* R4 — produto & ticket (todos os canais) */
+  .prod-list{display:flex;flex-direction:column;flex-shrink:1;min-height:0;overflow:hidden}
+  .prod-item{display:flex;align-items:center;gap:.7em;padding:.5cqh 0;border-bottom:1px solid var(--line);
+    font-size:clamp(10.2px,3.541cqh,22.9px)}
+  .prod-item:last-child{border-bottom:none}
+  .prod-item .n{width:1.2em;flex:none;color:var(--muted2);font-family:'Red Hat Display';font-weight:700;font-size:.85em}
+  .prod-item .t{flex:1;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prod-item b{color:var(--lilac);font-family:'Red Hat Display';font-weight:700;white-space:nowrap}
+  .prod-stats{display:flex;gap:1.8cqw;padding-top:1.1cqh;border-top:2px dashed var(--line);flex-shrink:0}
+  .prod-stat{flex:1}
+  .prod-stat .v{font-family:'Red Hat Display';font-weight:800;color:#fff;font-size:clamp(15.2px,5.141cqh,39.2px);letter-spacing:-.01em}
+  .prod-stat .v .cur{font-size:.5em;color:var(--muted);font-weight:700;margin-right:.08em}
+  .prod-stat .l{font-size:clamp(8.6px,2.841cqh,18.3px);letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:.3em}
+  .prod-note{font-size:clamp(8.6px,2.841cqh,18.3px);color:var(--muted2);margin-top:.6cqh;flex-shrink:0}
+  .prod-note b{color:var(--muted);font-weight:500}
 
-  .mock-badge{ position:absolute; top:6px; left:50%; transform:translateX(-50%);
-    background:rgba(255,90,60,.16); border:1px solid rgba(255,120,90,.55); color:#FF8A6B;
-    font-weight:600; font-size:11px; letter-spacing:.16em; text-transform:uppercase;
-    padding:4px 16px; border-radius:20px; z-index:20; display:none; }
-  .stale{ position:fixed; bottom:8px; right:12px; font:10px/1 monospace;
-    color:#4a4a55; opacity:.5; z-index:20; }
-  .err{ position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:#1a0808; border:1px solid #6b2020; color:#ff9a80; padding:20px 28px;
-    border-radius:10px; font-size:14px; max-width:70%; z-index:30; display:none; }
+  .src{font-size:clamp(7.8px,2.541cqh,16.7px);color:var(--muted2);margin-top:1cqh;display:flex;align-items:center;gap:.5em}
+  .dotsrc{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--lilac);flex:none}
 </style>
-</head>
-<body>
 
-<div class="wall" id="wall">
-  <div class="mock-badge" id="mockBadge">dados de exemplo — não ao vivo</div>
+<style>
+  /* ---- adicionado no clone: estados de carga/erro (nao altera o design) ---- */
+  .load-msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-family:'Outfit';font-size:15px;color:#8A8A92;letter-spacing:.1em;
+    text-transform:uppercase;z-index:50}
+  .err-msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:#1a0808;border:1px solid #6b2020;color:#ff9a80;padding:22px 30px;
+    border-radius:10px;font-family:'Outfit';font-size:14px;max-width:60%;
+    z-index:50;display:none;line-height:1.5}
+  .stamp{position:fixed;bottom:7px;right:11px;font:10px/1 'Outfit',monospace;
+    color:#3d3d47;z-index:50;letter-spacing:.06em}
+  .aguardando{display:flex;flex-direction:column;gap:.5cqh;justify-content:center;
+    flex:1;min-height:0;font-family:'Outfit';font-weight:400;color:#5C5C66;
+    font-size:clamp(9.5px,3.1cqh,20px);padding-left:.2em;
+    border-left:2px dashed #2A2A33}
+  .aguardando span{font-size:clamp(7.5px,2.4cqh,14px);letter-spacing:.14em;
+    text-transform:uppercase;color:#3d3d47}
+  .wall.loading{opacity:0}
+  .wall{transition:opacity .35s ease}
+</style>
+</head><body>
+<div class="wall loading" id="wall">
 
-  <!-- ===== LINHA 1: hero · marca · projeção ===== -->
-  <div class="cell br bb">
-    <div class="eyebrow" id="h1-eyebrow">Total geral</div>
-    <div class="hero-body">
-      <div class="hero-num" id="h1-valor">—</div>
-      <div class="hero-sub" id="h1-meta">—</div>
-      <div class="bar-track"><div class="bar-fill" id="h1-bar" style="width:0"></div></div>
-      <div class="hero-pct" id="h1-pct">—</div>
-      <div class="pct-lab">da meta do mês</div>
+  <!-- LINHA 1 — HERO -->
+  <div class="cell hero-cell br bb">
+    <div class="hero-num">
+      <div class="eyebrow" data-f="hero.eyebrow"></div>
+      <div class="big"><span class="cur">R$</span><span data-f="hero.valor"></span></div>
+      <div class="sub">de <b data-f="hero.meta"></b> de meta no mês</div>
+      <div class="hero-bar"><div class="bar"><i data-f="hero.bar"></i></div><div class="pct" data-f="hero.pct"></div></div>
+      <div class="hero-alc"><span class="v" data-f="hero.alcance"></span><span class="l">alcance vs. previsto</span></div>
     </div>
   </div>
 
-  <div class="cell br bb id-cell">
+  <div class="cell id-cell bb">
     <div class="word">elements<span class="dot">.</span></div>
     <div class="slogan">viva sem medo</div>
   </div>
 
-  <div class="cell bb">
-    <div class="eyebrow">Projeção de fechamento</div>
-    <div class="hero-body">
-      <div class="hero-num" id="h2-pct">—</div>
-      <div class="pct-lab">da meta do mês</div>
-      <div class="hero-sub" id="h2-valor">—</div>
-      <div class="bar-track"><div class="bar-fill" id="h2-bar" style="width:0"></div></div>
-      <div class="hero-sub" id="h2-falta">—</div>
+  <div class="cell hero-cell right bb">
+    <div class="hero-ytd">
+      <div class="eyebrow" data-f="proj.eyebrow"></div>
+      <div class="val" data-f="proj.pct"></div>
+      <div class="sub">no ritmo atual, fecha o mês em <b data-f="proj.valor"></b> — meta é <span data-f="proj.meta"></span></div>
     </div>
   </div>
 
-  <!-- ===== LINHA 2: evolução por canal ===== -->
-  <div class="cell br bb" id="canal-0"></div>
-  <div class="cell br bb" id="canal-1"></div>
-  <div class="cell bb" id="canal-2"></div>
+  <!-- LINHA 2 — EVOLUÇÃO META × REALIZADO -->
+  <div class="cell canal-cell br bb" data-canal="0"></div>
+  <div class="cell canal-cell br bb" data-canal="1"></div>
+  <div class="cell canal-cell bb"    data-canal="2"></div>
 
-  <!-- ===== LINHA 3: rankings ===== -->
-  <div class="cell br bb" id="rk-revenda"></div>
-  <div class="cell br bb" id="rk-corporativo"></div>
-  <div class="cell bb" id="rk-sdrs"></div>
+  <!-- LINHA 3 — RANKING / TERRITÓRIO -->
+  <div class="cell qcell br bb" data-rank="0"></div>
+  <div class="cell qcell br bb" data-rank="1"></div>
+  <div class="cell qcell bb"    data-terr="1"></div>
 
-  <!-- ===== LINHA 4: ritmo · digital detalhado · conversão ===== -->
-  <div class="cell br" id="cell-ritmo"></div>
-  <div class="cell br" id="cell-digital"></div>
-  <div class="cell" id="cell-conversao"></div>
+  <!-- LINHA 4 — PRODUTO & TICKET -->
+  <div class="cell qcell br" data-prod="0"></div>
+  <div class="cell qcell br" data-prod="1"></div>
+  <div class="cell qcell"    data-prod="2"></div>
+
 </div>
 
-<div class="stale" id="stale"></div>
-<div class="err" id="err"></div>
-
+<div class="load-msg" id="loadMsg">carregando dados</div>
+<div class="err-msg" id="errMsg"></div>
+<div class="stamp" id="stamp"></div>
 <script>
 (function(){
-  var wall = document.getElementById('wall');
+  /* ============================================================
+     PAINEL COMERCIAL — versão que consome data.json
+     Clone fiel do index.html estático que roda hoje na parede.
+     O CSS e a estrutura de células são idênticos ao original;
+     a única diferença é que os valores vêm de data.json em vez
+     de estarem escritos no markup.
+     ============================================================ */
 
-  /* Canvas fixo + escala "cover" — nunca contain/letterbox */
+  var URL_DADOS = '/.netlify/functions/painel-data';
+
+  /* ---------- Escala do canvas (idêntico ao original) ----------
+     Canvas fixo 1920x1080 escalado com "cover". NÃO trocar por
+     contain/letterbox — já causou faixas cinza na parede real. */
+  var wall = document.getElementById('wall');
   function fit(){
     var s = Math.max(window.innerWidth / 1920, window.innerHeight / 1080);
     wall.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
@@ -242,246 +282,317 @@
   fit();
   window.addEventListener('resize', fit);
 
-  var fBRL  = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
-  var fNum  = new Intl.NumberFormat('pt-BR');
-
-  function p1(n){ return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}); }
-  function p2(n){ return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-  function clampPct(n){ return Math.max(0, Math.min(100, n||0)); }
-  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){
-    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  function inic(nome){
-    var partes = String(nome).trim().split(/\s+/);
-    if (partes.length >= 2) return (partes[0][0] + partes[1][0]).toUpperCase();
-    return String(nome).slice(0,2).toUpperCase();
+  /* ---------- Formatação pt-BR ---------- */
+  function miles(v){
+    return Math.round(v||0).toLocaleString('pt-BR');
   }
-  function abrevBRL(v){
+  function brl(v){ return 'R$ ' + miles(v); }
+  function brlAbrev(v){
     v = v || 0;
-    if (Math.abs(v) >= 1e6) return 'R$ ' + p1(v/1e6) + 'M';
+    if (Math.abs(v) >= 1e6) return 'R$ ' + (v/1e6).toLocaleString('pt-BR',
+      {minimumFractionDigits:1, maximumFractionDigits:1}) + 'M';
     if (Math.abs(v) >= 1e3) return 'R$ ' + Math.round(v/1e3) + 'k';
-    return fBRL.format(v);
+    return brl(v);
+  }
+  function pct1(v){
+    return (v||0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%';
+  }
+  function pct0(v){ return Math.round(v||0) + '%'; }
+  function pct2(v){
+    return (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%';
+  }
+  function cap(v){ return Math.max(0, Math.min(100, v||0)); }
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"]/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+  function vazio(v){ return v == null || v === 0 || v === ''; }
+  function ouTraco(v, fmt){ return vazio(v) ? '—' : fmt(v); }
+  function inic(nome){
+    var p = String(nome||'').trim().split(/\s+/);
+    return (p.length >= 2 ? (p[0][0]+p[1][0]) : String(nome||'').slice(0,2)).toUpperCase();
   }
 
-  /* ---- Gráfico de barras + linha de meta pontilhada ---- */
-  function svgChart(hist){
+  /* ---------- Gráfico de evolução (geometria idêntica ao original) ----------
+     viewBox 440x130 · baseline y=112 · altura útil 92px
+     x da barra i = 14.8 + i*55.01, largura 25.3
+     altura = valor * 92 / maxGeral   (maxGeral = maior valor OU meta)
+     linha de meta passa pelo centro de cada barra (x + 12.65)
+     rótulo de % fica 5px acima do topo da barra                        */
+  function chartSVG(hist, gradId){
     if (!hist || !hist.length) return '';
-    var W = 100, H = 100, n = hist.length;
-    var maxV = 0;
-    hist.forEach(function(d){ maxV = Math.max(maxV, d.atingido||0, d.meta||0); });
-    if (!maxV) return '';
-    var stepX = W / n, bars = '', metaPath = '', labels = '';
+    var BASE = 112, UTIL = 92, X0 = 14.8, STEP = 55.01, W = 25.3;
+    var mx = 0;
+    hist.forEach(function(d){ mx = Math.max(mx, d.atingido||0, d.meta||0); });
+    if (!mx) return '';
 
+    var bars = '', metaPts = [], labels = '';
     hist.forEach(function(d, i){
-      var bh = ((d.atingido||0) / maxV) * (H - 14);
-      var x  = i * stepX + stepX * 0.18;
-      var w  = stepX * 0.64;
-      var y  = H - bh;
-      var ultimo = (i === n - 1);
-      bars += '<rect x="'+x.toFixed(2)+'" y="'+y.toFixed(2)+'" width="'+w.toFixed(2)+
-              '" height="'+bh.toFixed(2)+'" rx="0.8" fill="'+(ultimo?'#B47CFF':'#4a3a6b')+'"/>';
-      var mx = i * stepX + stepX / 2;
-      var my = H - ((d.meta||0) / maxV) * (H - 14);
-      metaPath += (i === 0 ? 'M ' : ' L ') + mx.toFixed(2) + ' ' + my.toFixed(2);
-      labels += '<text x="'+mx.toFixed(2)+'" y="'+(H-1.5)+'" font-size="6.5" fill="'+
-                (ultimo?'#B47CFF':'#5C5C66')+'" text-anchor="middle" font-family="Outfit">'+
-                esc(d.mes)+'</text>';
+      var h  = (d.atingido||0) * UTIL / mx;
+      var x  = X0 + i * STEP;
+      var y  = BASE - h;
+      var cx = x + W/2;
+      var my = BASE - (d.meta||0) * UTIL / mx;
+      var pc = (d.meta ? (d.atingido/d.meta)*100 : 0);
+
+      bars += '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+W+
+              '" height="'+h.toFixed(1)+'" rx="2.5" fill="url(#'+gradId+')"/>';
+      metaPts.push(cx.toFixed(1)+','+my.toFixed(1));
+      labels += '<text x="'+cx.toFixed(1)+'" y="'+(y-5).toFixed(1)+
+                '" text-anchor="middle" class="barlabel">'+pct0(pc)+'</text>';
     });
 
-    return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">' + bars +
-      '<path d="'+metaPath+'" fill="none" stroke="#8A8A92" stroke-width="0.9" ' +
-      'stroke-dasharray="2.2,2" vector-effect="non-scaling-stroke"/>' + labels + '</svg>';
+    var ult = metaPts[metaPts.length-1].split(',');
+    var mesIni = (hist[0].mes || '').toUpperCase();
+    var mesFim = (hist[hist.length-1].mes || '').toUpperCase();
+
+    return '<svg viewBox="0 0 440 130" preserveAspectRatio="none">' +
+      '<defs><linearGradient id="'+gradId+'" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="#C9A7FF" stop-opacity=".95"/>' +
+        '<stop offset="100%" stop-color="#6F00FF" stop-opacity=".35"/>' +
+      '</linearGradient></defs>' +
+      bars +
+      '<path d="M'+metaPts.join(' L')+'" fill="none" stroke="#8A8A92" stroke-width="1.8" ' +
+        'stroke-dasharray="1 5" stroke-linecap="round"/>' +
+      '<circle cx="'+ult[0]+'" cy="'+ult[1]+'" r="4" fill="none" stroke="#C6C6C6" stroke-width="1.6"/>' +
+      labels +
+      '<text x="0" y="126" class="mlabel">'+esc(mesIni)+'</text>' +
+      '<text x="440" y="126" text-anchor="end" class="mlabel">'+esc(mesFim)+'</text>' +
+    '</svg>';
   }
 
-  /* ---- Lista de pessoas com barra relativa ao 1º ---- */
-  function listaHTML(itens, opts){
-    opts = opts || {};
-    if (!itens || !itens.length) return '<ul class="lb"></ul>';
-    var topo = Math.max.apply(null, itens.map(function(p){ return p.valor||0; })) || 1;
-    var html = '<ul class="lb">';
-    itens.forEach(function(p, i){
-      var cls = (i === 0 && (p.valor||0) > 0) ? 'top' : '';
-      if (!(p.valor > 0)) cls += ' zero';
-      var largura = clampPct(((p.valor||0) / topo) * 100);
-      html += '<li class="'+cls+'">' +
-        '<div class="avatar">'+esc(inic(p.nome))+'</div>' +
-        '<div class="lb-txt">' +
-          '<div class="lb-name">'+esc(p.nome)+'</div>' +
-          '<div class="lb-bar"><i style="width:'+largura.toFixed(1)+'%"></i></div>' +
-        '</div>' +
-        '<div class="lb-val">'+abrevBRL(p.valor)+'</div>' +
-      '</li>';
-    });
-    return html + '</ul>';
+  /* ---------- Donut de clientes novos (idêntico ao original) ----------
+     r=38 -> circunferência 238.76. dasharray = pct * circ / 100      */
+  function donutSVG(pct, gradId){
+    var CIRC = 238.76;
+    var dash = (cap(pct) * CIRC / 100).toFixed(1);
+    return '<svg viewBox="0 0 88 88">' +
+      '<circle cx="44" cy="44" r="38" fill="none" stroke="#211B2E" stroke-width="8"/>' +
+      '<circle cx="44" cy="44" r="38" fill="none" stroke="url(#'+gradId+')" stroke-width="8" ' +
+        'stroke-linecap="round" stroke-dasharray="'+dash+' '+CIRC.toFixed(1)+'"/>' +
+      '<defs><linearGradient id="'+gradId+'" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0%" stop-color="#6F00FF"/><stop offset="100%" stop-color="#C9A7FF"/>' +
+      '</linearGradient></defs></svg>';
   }
 
-  /* ---- Render de um quadrante de canal ---- */
-  function renderCanal(el, c){
+  /* ---------- LINHA 2 · quadrante de evolução por canal ---------- */
+  function renderCanal(el, c, idx){
     if (!el || !c) return;
+    var gid = 'g' + idx;
     el.innerHTML =
-      '<div class="canal-head">' +
+      '<div class="canal-stat">' +
         '<h3>'+esc(c.nome)+'</h3>' +
-        '<div class="canal-val">'+fBRL.format(c.realizado)+'</div>' +
-        '<div class="canal-meta">de '+abrevBRL(c.meta)+' de meta</div>' +
-        '<div class="canal-pct">'+p1(c.pct_meta)+'%</div>' +
-        '<div class="pct-lab">da meta do mês</div>' +
+        '<div class="val"><span class="cur">R$</span>'+miles(c.realizado)+'</div>' +
+        '<div class="meta">/ '+brlAbrev(c.meta)+' meta do mês</div>' +
+        '<div class="pct-wrap"><div class="pct">'+pct1(c.pct_meta)+'</div>' +
+        '<div class="pct-lab">da meta do mês</div></div>' +
       '</div>' +
-      '<div class="chart">'+svgChart(c.historico)+'</div>';
+      '<div class="canal-ytd">Projetado: <b>'+pct0(c.projecao_pct)+'</b> da meta do mês</div>' +
+      '<div class="canal-alc">Alcance vs. previsto: <b>'+pct0(
+          c.alcance_vs_previsto != null ? c.alcance_vs_previsto : c.projecao_pct
+        )+'</b></div>' +
+      '<div class="legend"><span><i class="sw"></i>Realizado</span>' +
+        '<span><i class="sw dash"></i>Meta</span></div>' +
+      '<div class="chartwrap"><div class="chartglow"></div>' +
+        chartSVG(c.historico, gid) +
+      '</div>';
   }
 
-  /* ---- Render principal ---- */
+  /* ---------- LINHA 3 · leaderboard de vendedores ---------- */
+  function renderRank(el, c, idx, mes){
+    if (!el || !c) return;
+    var vend = c.vendedores || [];
+    var topo = 0;
+    vend.forEach(function(p){ topo = Math.max(topo, p.valor||0); });
+
+    var cn = c.clientes_novos;
+    var mini = '';
+    if (cn && cn.total) {
+      var p = (cn.valor / cn.total) * 100;
+      mini = '<div class="cli-mini">' +
+        '<div class="donut-mini">' + donutSVG(p, 'gD'+idx) +
+          '<div class="center-mini">'+pct0(p)+'</div>' +
+        '</div>' +
+        '<div class="cli-mini-info">' +
+          '<div class="v">'+cn.valor+'<span> / '+cn.total+'</span></div>' +
+          '<div class="l">novos</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var rows = '';
+    vend.forEach(function(p, i){
+      var w = topo ? cap((p.valor||0)/topo*100) : 0;
+      rows += '<div class="lb-row'+(i===0 && (p.valor||0)>0 ? ' p1' : '')+'">' +
+        '<div class="lb-avatar">'+esc(inic(p.nome))+'</div>' +
+        '<div class="lb-body">' +
+          '<div class="lb-toprow"><span class="lb-name">'+esc(p.nome)+'</span>' +
+          '<span class="lb-val">'+brl(p.valor)+'</span></div>' +
+          '<div class="lb-bar"><i style="width:'+Math.round(w)+'%"></i></div>' +
+        '</div>' +
+      '</div>';
+    });
+
+    el.innerHTML =
+      '<div class="qhead">' +
+        '<span class="eyebrow" style="font-size:clamp(8.6px,2.841cqh,18.3px)">' +
+          esc(c.nome)+' · '+esc(mes)+'</span>' + mini +
+      '</div>' +
+      '<div class="lb">'+rows+'</div>';
+  }
+
+  /* ---------- LINHA 3 col 3 · território + sessões ---------- */
+  function renderTerr(el, t){
+    if (!el || !t) return;
+    var lista = t.lista || [];
+    var temDado = lista.length > 0;
+    var itens = '';
+    if (temDado) {
+      lista.forEach(function(r, i){
+        itens += '<div class="rg-item"><span class="n">'+String(i+1).padStart(2,'0')+'</span>' +
+          '<span class="t">'+esc(r.nome)+'</span><b>'+pct1(r.pct)+'</b></div>';
+      });
+    } else {
+      itens = '<div class="aguardando">Representatividade por território' +
+              '<span>aguardando BigQuery</span></div>';
+    }
+    /* Selo "ao vivo" só aparece quando existe dado de verdade —
+       um selo verde sobre bloco vazio confunde mais que ajuda. */
+    var selo = temDado ? '<span class="live"><i></i>BIGQUERY AO VIVO</span>' : '';
+    el.innerHTML =
+      '<div class="qhead"><span class="eyebrow" style="font-size:clamp(8.6px,2.841cqh,18.3px)">' +
+        'Território</span>' + selo + '</div>' +
+      '<div class="rg-list">'+itens+'</div>' +
+      '<div class="sess-stats">' +
+        '<div class="sess-stat"><div class="v">'+ouTraco(t.sessoes, miles)+'</div>' +
+          '<div class="l">Sessões · mês</div></div>' +
+        '<div class="sess-stat"><div class="v">'+ouTraco(t.conversao, pct2)+'</div>' +
+          '<div class="l">Conversão</div></div>' +
+      '</div>';
+  }
+
+  /* ---------- LINHA 4 · top produtos + pedidos/ticket ---------- */
+  function renderProd(el, c, mes, ehUltimo, fonteTxt){
+    if (!el || !c) return;
+    var prods = c.produtos || [];
+    var porReceita = prods.length && prods[0].receita != null && prods[0].receita > 0;
+
+    var itens = '';
+    if (prods.length) {
+      prods.forEach(function(p, i){
+        var val = porReceita ? brlAbrev(p.receita) : (miles(p.unidades) + ' un');
+        itens += '<div class="prod-item"><span class="n">'+String(i+1).padStart(2,'0')+'</span>' +
+          '<span class="t">'+esc(p.nome)+'</span><b>'+val+'</b></div>';
+      });
+    } else {
+      itens = '<div class="aguardando">Receita por produto' +
+              '<span>aguardando BigQuery</span></div>';
+    }
+
+    var nota = '';
+    if (ehUltimo && fonteTxt) {
+      nota = '<div class="src"><span class="dotsrc"></span>'+esc(fonteTxt)+'</div>';
+    } else if (c.maior_cliente && c.maior_cliente.nome) {
+      nota = '<div class="prod-note">Maior cliente do mês: <b>' +
+        esc(c.maior_cliente.nome)+'</b> · '+brl(c.maior_cliente.valor)+'</div>';
+    }
+
+    el.innerHTML =
+      '<div class="qhead"><span class="eyebrow" style="font-size:clamp(8.6px,2.841cqh,18.3px)">' +
+        'Top produtos</span></div>' +
+      '<div class="prod-list">'+itens+'</div>' +
+      '<div class="prod-stats">' +
+        '<div class="prod-stat"><div class="v">'+ouTraco(c.pedidos, miles)+'</div>' +
+          '<div class="l">Pedidos · '+esc(mes)+'</div></div>' +
+        '<div class="prod-stat"><div class="v">' +
+          (vazio(c.ticket_medio) ? '—'
+            : '<span class="cur">R$</span>' + miles(c.ticket_medio)) +
+          '</div><div class="l">Ticket médio</div></div>' +
+      '</div>' + nota;
+  }
+
+  /* ---------- Preenche os campos simples (data-f) ---------- */
+  function setF(nome, valor){
+    var el = document.querySelector('[data-f="'+nome+'"]');
+    if (el) el.textContent = valor;
+  }
+
+  /* ---------- Render principal ---------- */
   function render(d){
-    // Linha 1 · hero
-    document.getElementById('h1-eyebrow').textContent = d.hero.titulo;
-    document.getElementById('h1-valor').textContent = fBRL.format(d.hero.valor);
-    document.getElementById('h1-meta').textContent = 'de ' + fBRL.format(d.hero.meta) + ' de meta';
-    document.getElementById('h1-bar').style.width = clampPct(d.hero.pct_atingido) + '%';
-    document.getElementById('h1-pct').textContent = p1(d.hero.pct_atingido) + '%';
+    var mes = d.mes_vigente || '';
+    var h = d.hero || {};
 
-    // Linha 1 · projeção
-    document.getElementById('h2-pct').textContent = p1(d.hero.projecao_pct) + '%';
-    document.getElementById('h2-valor').textContent = 'fecha o mês em ' + fBRL.format(d.hero.projecao);
-    document.getElementById('h2-bar').style.width = clampPct(d.hero.projecao_pct) + '%';
-    var falta = (d.hero.meta || 0) - (d.hero.valor || 0);
-    document.getElementById('h2-falta').textContent =
-      falta > 0 ? 'faltam ' + fBRL.format(falta) + ' para a meta' : 'meta do mês batida';
+    setF('hero.eyebrow', 'Total geral · ' + mes);
+    setF('hero.valor', miles(h.valor));
+    setF('hero.meta', brl(h.meta));
+    setF('hero.pct', pct1(h.pct_atingido));
+    setF('hero.alcance', pct0(h.alcance_vs_previsto != null ? h.alcance_vs_previsto : h.projecao_pct));
+    var barEl = document.querySelector('[data-f="hero.bar"]');
+    if (barEl) barEl.style.width = cap(h.pct_atingido) + '%';
 
-    // Linha 2 · canais
-    (d.canais || []).forEach(function(c, i){
-      renderCanal(document.getElementById('canal-' + i), c);
+    setF('proj.eyebrow', 'Projetado · ' + mes);
+    setF('proj.pct', pct0(h.projecao_pct));
+    setF('proj.valor', brl(h.projecao));
+    setF('proj.meta', brl(h.meta));
+
+    var canais = d.canais || [];
+    canais.forEach(function(c, i){
+      renderCanal(document.querySelector('[data-canal="'+i+'"]'), c, i);
     });
 
-    // Linha 3 · rankings
-    var rk = d.rankings || {};
-    function bloco(elId, titulo, itens, stat){
-      var el = document.getElementById(elId);
-      if (!el) return;
-      el.innerHTML =
-        '<div class="list-head">' +
-          '<h3>'+esc(titulo)+'</h3>' +
-          (stat ? '<div class="head-stat"><div class="n">'+stat.n+'</div>' +
-                  '<div class="l">'+esc(stat.l)+'</div></div>' : '') +
-        '</div>' + listaHTML(itens);
-    }
+    /* Linha 3: colunas 1 e 2 = vendedores dos canais 0 e 1 */
+    renderRank(document.querySelector('[data-rank="0"]'), canais[0], 0, mes);
+    renderRank(document.querySelector('[data-rank="1"]'), canais[1], 1, mes);
+    renderTerr(document.querySelector('[data-terr="1"]'), d.territorio);
 
-    bloco('rk-revenda', 'Revenda · vendedores', rk.revenda,
-      { n: p1(pctCanal(d,'Revenda')) + '%', l: 'da meta' });
-    bloco('rk-corporativo', 'Corporativo · vendedores', rk.corporativo,
-      { n: p1(pctCanal(d,'Corporativo')) + '%', l: 'da meta' });
-    bloco('rk-sdrs', 'Participação SDRs', rk.sdrs,
-      rk.sdr_geral ? { n: p1(rk.sdr_geral.pct) + '%', l: 'meta do time' } : null);
-
-    // Linha 4 · ritmo do mês
-    var dias = d.dias || {};
-    var elR = document.getElementById('cell-ritmo');
-    function rhRow(lab, obj, vendaPct){
-      if (!obj) return '';
-      return '<div class="rh-row">' +
-        '<div class="rh-top"><span class="rh-lab">'+esc(lab)+'</span>' +
-        '<span class="rh-days">'+obj.trabalhados+' de '+obj.total+' dias</span></div>' +
-        '<div class="rh-track"><div class="rh-fill time" style="width:'+
-          clampPct(obj.pct_decorrido).toFixed(1)+'%"></div></div>' +
-        '<div class="rh-note">'+p1(obj.pct_decorrido)+'% do prazo · '+
-          p1(vendaPct)+'% da meta vendida</div>' +
-      '</div>';
-    }
-    elR.innerHTML =
-      '<div class="eyebrow">Ritmo do mês</div>' +
-      '<div class="rhythm">' +
-        rhRow('B2B · Revenda e Corporativo', dias.b2b, pctB2B(d)) +
-        rhRow('B2C · Digital', dias.b2c, pctCanal(d,'Digital')) +
-      '</div>' +
-      '<div class="stats"><div class="stat">' +
-        '<div class="v">'+(dias.b2b ? dias.b2b.faltantes : '—')+'</div>' +
-        '<div class="l">dias úteis restantes</div></div></div>';
-
-    // Linha 4 · digital detalhado
-    var elD = document.getElementById('cell-digital');
-    var dig = d.digital_detalhe || [];
-    var canalDig = (d.canais || []).filter(function(c){
-      return c.nome.toLowerCase().indexOf('digital') >= 0; })[0];
-    elD.innerHTML =
-      '<div class="list-head"><h3>Digital · composição</h3>' +
-        (canalDig ? '<div class="head-stat"><div class="n">'+abrevBRL(canalDig.realizado)+
-          '</div><div class="l">total do canal</div></div>' : '') +
-      '</div>' + listaHTML(dig);
-
-    // Linha 4 · conversão do site
-    var cv = d.conversao || {};
-    var elC = document.getElementById('cell-conversao');
-    function convRow(nome, o){
-      if (!o) return '';
-      var atingiu = (o.atual || 0) >= (o.meta || 0);
-      var rel = o.meta ? clampPct((o.atual / o.meta) * 100) : 0;
-      return '<div class="conv-row">' +
-        '<div class="conv-top"><span class="conv-name">'+esc(nome)+'</span>' +
-        '<span class="conv-val '+(atingiu?'ok':'low')+'">'+p2(o.atual)+'%</span></div>' +
-        '<div class="conv-track"><i style="width:'+rel.toFixed(1)+'%"></i></div>' +
-        '<div class="conv-meta">meta '+p2(o.meta)+'% · '+p1(rel)+'% da meta de conversão</div>' +
-      '</div>';
-    }
-    elC.innerHTML =
-      '<div class="list-head"><h3>Conversão do site</h3>' +
-        '<div class="head-stat"><div class="l">'+esc(d.mes_vigente || '')+'</div></div></div>' +
-      '<div class="conv">' +
-        convRow('B2C · site', cv.b2c) +
-        convRow('Corporativo · site', cv.corp) +
-      '</div>' +
-      '<div class="stats"><div class="stat"><div class="v lilac">'+
-        (cv.cac_corp_meta ? p1(cv.cac_corp_meta)+'%' : '—') +
-        '</div><div class="l">meta CAC corporativo</div></div></div>';
-
-    // Avisos
-    document.getElementById('mockBadge').style.display = d.__aviso ? 'block' : 'none';
-    document.getElementById('stale').textContent =
-      (d.fonte || '') + ' · ' + new Date(d.atualizado_em).toLocaleTimeString('pt-BR');
-    document.getElementById('err').style.display = 'none';
-  }
-
-  /* Helpers que dependem do payload */
-  function pctCanal(d, nome){
-    var c = (d.canais || []).filter(function(x){
-      return x.nome.toLowerCase().indexOf(nome.toLowerCase()) >= 0; })[0];
-    return c ? c.pct_meta : 0;
-  }
-  function pctB2B(d){
-    var soma = 0, meta = 0;
-    (d.canais || []).forEach(function(c){
-      var n = c.nome.toLowerCase();
-      if (n.indexOf('revenda') >= 0 || n.indexOf('corporativ') >= 0){
-        soma += c.realizado || 0; meta += c.meta || 0;
-      }
+    var fonte = d.fonte_rodape ||
+      'Produtos/pedidos: BigQuery (elements-489322) · Meta/realizado geral: planilha GERAL 2026 (SharePoint)';
+    canais.forEach(function(c, i){
+      renderProd(document.querySelector('[data-prod="'+i+'"]'), c, mes, i === 2, fonte);
     });
-    return meta ? (soma / meta) * 100 : 0;
+
+    document.getElementById('stamp').textContent =
+      'dados de ' + (d.atualizado_em
+        ? new Date(d.atualizado_em).toLocaleString('pt-BR')
+        : '—');
+
+    document.getElementById('loadMsg').style.display = 'none';
+    document.getElementById('errMsg').style.display = 'none';
+    wall.classList.remove('loading');
   }
 
-  function mostrarErro(msg){
-    var e = document.getElementById('err');
-    e.textContent = 'Não foi possível carregar os dados: ' + msg;
+  function falhar(msg){
+    document.getElementById('loadMsg').style.display = 'none';
+    var e = document.getElementById('errMsg');
+    e.innerHTML = '<b>Não foi possível carregar os dados</b><br>' + esc(msg) +
+      '<br><br>O painel não exibe números antigos por segurança.';
     e.style.display = 'block';
   }
 
-  function loadData(){
-    fetch('/.netlify/functions/painel-data', { cache: 'no-store' })
+  /* ---------- Busca os dados ---------- */
+  function carregar(){
+    fetch(URL_DADOS + '?_=' + Date.now(), { cache: 'no-store' })
       .then(function(r){
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+        if (!r.ok) throw new Error('HTTP ' + r.status + ' ao buscar ' + URL_DADOS);
         return r.json();
       })
-      .then(function(d){
-        if (d.error) throw new Error(d.detail || d.error);
-        render(d);
-      })
-      .catch(function(err){ mostrarErro(err.message); });
+      .then(render)
+      .catch(function(err){ falhar(err.message); });
   }
 
-  loadData();
-  setInterval(loadData, 60 * 1000);
+  carregar();
+  /* Rebusca os dados a cada 60s, sem recarregar a página */
+  setInterval(carregar, 60 * 1000);
 
-  /* Rede de segurança: recarrega a página a cada 5 min com cache-busting,
-     garante que a TV pegue novos deploys de design */
+  /* Rede de segurança: recarrega a página a cada 5 min com cache-busting.
+     NÃO trocar por location.reload() sem cache-busting — quebra o
+     auto-refresh na TV física (fica preso em versão antiga em cache). */
   setTimeout(function(){
-    window.location.href = window.location.pathname + '?_r=' + Date.now();
+    location.replace(location.pathname + '?_r=' + Date.now());
   }, 5 * 60 * 1000);
 })();
 </script>
+
 </body>
 </html>
