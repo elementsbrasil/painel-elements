@@ -1,401 +1,405 @@
-// netlify/functions/painel-data.js  —  MOCK (dados reais congelados)
+// ============================================================================
+//  PAINEL COMERCIAL — função de dados
 //
-// Snapshot extraído da planilha GERAL 2026.xlsx real, aba AGOSTO.
-// Os valores NÃO atualizam quando a planilha muda — servem para validar
-// o design/layout antes de plugar o SharePoint.
+//  Roda no servidor da Netlify. Consulta as DUAS fontes ao vivo a cada
+//  chamada e devolve um JSON no formato que o index.html espera.
 //
-// Quando as credenciais do Azure estiverem prontas, substitua o conteúdo
-// deste arquivo pelo de painel-data-REAL.js.
+//    SharePoint (Microsoft Graph)  -> hero, canais, evolução, vendedores
+//    BigQuery (Google Cloud)       -> território, produtos, pedidos, ticket
+//
+//  CREDENCIAIS: lidas de variáveis de ambiente. Nunca no código, nunca no
+//  GitHub. Configurar em Netlify > Site configuration > Environment variables:
+//
+//    MS_CLIENT_ID              (Azure > App registration > Overview)
+//    MS_TENANT_ID              (idem)
+//    MS_CLIENT_SECRET          (Azure > Certificates & secrets)  [EXPIRA!]
+//    SHAREPOINT_SITE_ID        (Graph Explorer)
+//    SHAREPOINT_ITEM_ID        (Graph Explorer)
+//    BQ_SERVICE_ACCOUNT_JSON   (conteúdo do arquivo JSON, colado inteiro)
+//    MES_ABA                   (opcional: força uma aba, ex. "AGOSTO")
+//
+//  DEGRADAÇÃO: se uma fonte falhar, a outra ainda é entregue. O painel mostra
+//  "aguardando" no bloco sem dado em vez de número inventado (regra 7 da spec).
+// ============================================================================
 
-exports.handler = async function (event) {
-  const data = {
-    "atualizado_em": "2026-08-18T16:53:21.951Z",
-    "mes_vigente": "AGOSTO",
-    "fonte": "SharePoint · GERAL 2026.xlsx · aba AGOSTO",
-    "hero": {
-        "titulo": "Total Geral · AGOSTO",
-        "valor": 5140009.9399999995,
-        "meta": 10180000,
-        "pct_atingido": 50.491256777996064,
-        "projecao": 9562193.99604278,
-        "projecao_pct": 93.93117874305285
-    },
-    "dias": {
-        "b2b": {
-            "total": 21,
-            "trabalhados": 11,
-            "faltantes": 10,
-            "pct_decorrido": 52.38095238095239
-        },
-        "b2c": {
-            "total": 31,
-            "trabalhados": 17,
-            "faltantes": 14,
-            "pct_decorrido": 54.83870967741935
-        }
-    },
-    "canais": [
-        {
-            "nome": "Revenda",
-            "realizado": 1806699,
-            "projetado": 3449152.6363636362,
-            "projecao_pct": 88.43981118881119,
-            "meta": 3900000,
-            "pct_meta": 46.32561538461539,
-            "falta": 2093301,
-            "historico": [
-                {
-                    "mes": "Jan",
-                    "atingido": 2516418.0700000003,
-                    "meta": 4000000
-                },
-                {
-                    "mes": "Fev",
-                    "atingido": 5540309.9,
-                    "meta": 5950000
-                },
-                {
-                    "mes": "Mar",
-                    "atingido": 1980180.8399999999,
-                    "meta": 7000000
-                },
-                {
-                    "mes": "Abr",
-                    "atingido": 4813731.73,
-                    "meta": 5300000
-                },
-                {
-                    "mes": "Mai",
-                    "atingido": 2987584.61,
-                    "meta": 4460000
-                },
-                {
-                    "mes": "Jun",
-                    "atingido": 4748093.709999999,
-                    "meta": 4000000
-                },
-                {
-                    "mes": "Jul",
-                    "atingido": 3588291.3099999996,
-                    "meta": 4450000
-                },
-                {
-                    "mes": "Ago",
-                    "atingido": 1806699,
-                    "meta": 3900000
-                }
-            ]
-        },
-        {
-            "nome": "Corporativo",
-            "realizado": 1470200.09,
-            "projetado": 2731575.062727273,
-            "projecao_pct": 114.77206145912913,
-            "meta": 2380000,
-            "pct_meta": 61.773113025210094,
-            "falta": 909799.9099999999,
-            "historico": [
-                {
-                    "mes": "Jan",
-                    "atingido": 1089742.43,
-                    "meta": 1300000
-                },
-                {
-                    "mes": "Fev",
-                    "atingido": 1450326.8499999999,
-                    "meta": 1400000
-                },
-                {
-                    "mes": "Mar",
-                    "atingido": 2437123.56,
-                    "meta": 2030000
-                },
-                {
-                    "mes": "Abr",
-                    "atingido": 1356785.45,
-                    "meta": 1800000
-                },
-                {
-                    "mes": "Mai",
-                    "atingido": 1566736.74,
-                    "meta": 2100000
-                },
-                {
-                    "mes": "Jun",
-                    "atingido": 1395788.7999999998,
-                    "meta": 2100000
-                },
-                {
-                    "mes": "Jul",
-                    "atingido": 2770592.37,
-                    "meta": 2100000
-                },
-                {
-                    "mes": "Ago",
-                    "atingido": 1470200.09,
-                    "meta": 2380000
-                }
-            ]
-        },
-        {
-            "nome": "Digital",
-            "realizado": 1863110.85,
-            "projetado": 3381466.296951872,
-            "projecao_pct": 86.70426402440697,
-            "meta": 3900000,
-            "pct_meta": 47.77207307692308,
-            "falta": 2036889.15,
-            "historico": [
-                {
-                    "mes": "Jan",
-                    "atingido": 3520407.94,
-                    "meta": 4000000
-                },
-                {
-                    "mes": "Fev",
-                    "atingido": 3954318.2499999995,
-                    "meta": 5000000
-                },
-                {
-                    "mes": "Mar",
-                    "atingido": 4744006.5,
-                    "meta": 12000000
-                },
-                {
-                    "mes": "Abr",
-                    "atingido": 3042783.53,
-                    "meta": 5038790.4
-                },
-                {
-                    "mes": "Mai",
-                    "atingido": 2728402.98,
-                    "meta": 3450000
-                },
-                {
-                    "mes": "Jun",
-                    "atingido": 2670531.6100000003,
-                    "meta": 3500000
-                },
-                {
-                    "mes": "Jul",
-                    "atingido": 3163359.7300000004,
-                    "meta": 3800000
-                },
-                {
-                    "mes": "Ago",
-                    "atingido": 1863110.85,
-                    "meta": 3900000
-                }
-            ]
-        }
-    ],
-    "historico_geral": [
-        {
-            "mes": "Jan",
-            "atingido": 7612063.34,
-            "meta": 9771000
-        },
-        {
-            "mes": "Fev",
-            "atingido": 10944955,
-            "meta": 12350000
-        },
-        {
-            "mes": "Mar",
-            "atingido": 9161310.9,
-            "meta": 21030000
-        },
-        {
-            "mes": "Abr",
-            "atingido": 9213300.71,
-            "meta": 12138790.4
-        },
-        {
-            "mes": "Mai",
-            "atingido": 7282724.33,
-            "meta": 10010000
-        },
-        {
-            "mes": "Jun",
-            "atingido": 8814414.12,
-            "meta": 9600000
-        },
-        {
-            "mes": "Jul",
-            "atingido": 9522243.41,
-            "meta": 10350000
-        },
-        {
-            "mes": "Ago",
-            "atingido": 5140009.9399999995,
-            "meta": 10180000
-        }
-    ],
-    "rankings": {
-        "revenda": [
-            {
-                "nome": "Mariana",
-                "valor": 1723007,
-                "meta": 3570000,
-                "pct_meta": 48.26350140056022,
-                "media_dia": 156637,
-                "projecao": 3289377
-            },
-            {
-                "nome": "Maria Eduarda",
-                "valor": 73425,
-                "meta": 160000,
-                "pct_meta": 45.890625,
-                "media_dia": 6675,
-                "projecao": 140175
-            },
-            {
-                "nome": "Priscila",
-                "valor": 10267,
-                "meta": 85000,
-                "pct_meta": 12.078823529411764,
-                "media_dia": 933.3636363636364,
-                "projecao": 19600.636363636364
-            },
-            {
-                "nome": "Julio",
-                "valor": 0,
-                "meta": 85000,
-                "pct_meta": 0,
-                "media_dia": 0,
-                "projecao": 0
-            }
-        ],
-        "corporativo": [
-            {
-                "nome": "Gabriel",
-                "valor": 714371,
-                "meta": 420000,
-                "pct_meta": 170.08833333333334,
-                "media_dia": 64942.818181818184,
-                "projecao": 1363799.1818181819
-            },
-            {
-                "nome": "Kamila TVA",
-                "valor": 308747,
-                "meta": 400000,
-                "pct_meta": 77.18675,
-                "media_dia": 28067.909090909092,
-                "projecao": 589426.0909090909
-            },
-            {
-                "nome": "Raquel",
-                "valor": 155990,
-                "meta": 530000,
-                "pct_meta": 29.432075471698116,
-                "media_dia": 14180.90909090909,
-                "projecao": 297799.09090909094
-            },
-            {
-                "nome": "Bianca",
-                "valor": 135268,
-                "meta": 420000,
-                "pct_meta": 32.20666666666666,
-                "media_dia": 12297.09090909091,
-                "projecao": 258238.90909090912
-            }
-        ],
-        "sdrs": [
-            {
-                "nome": "Isaac",
-                "valor": 736968.6,
-                "meta": 380000,
-                "pct_meta": 193.9391052631579,
-                "media_dia": 43351.09411764706,
-                "projecao": 1170479.5411764705
-            },
-            {
-                "nome": "Beatriz",
-                "valor": 82774.38,
-                "meta": 380000,
-                "pct_meta": 21.78273157894737,
-                "media_dia": 7524.943636363637,
-                "projecao": 158023.81636363638
-            },
-            {
-                "nome": "Lhai",
-                "valor": 46216.69,
-                "meta": 380000,
-                "pct_meta": 12.162286842105264,
-                "media_dia": 2718.628823529412,
-                "projecao": 73402.97823529413
-            },
-            {
-                "nome": "Paola",
-                "valor": 33902,
-                "meta": 280000,
-                "pct_meta": 12.107857142857142,
-                "media_dia": 3082,
-                "projecao": 64722
-            }
-        ],
-        "sdr_geral": {
-            "meta": 1420000,
-            "vendido": 899861.67,
-            "pct": 75.96137456140352
-        }
-    },
-    "digital_detalhe": [
-        {
-            "nome": "B2C | IN",
-            "valor": 1404595.07,
-            "meta": 2930000,
-            "pct_meta": 47.93839829351536,
-            "media_dia": 82623.2394117647,
-            "projecao": 2561320.4217647063
-        },
-        {
-            "nome": "B2C | OUT",
-            "valor": 172047.58,
-            "meta": 400000,
-            "pct_meta": 43.011894999999996,
-            "media_dia": 10120.44588235294,
-            "projecao": 273252.0388235294
-        },
-        {
-            "nome": "Larissa TVA",
-            "valor": 159685.37,
-            "meta": 370000,
-            "pct_meta": 43.15820810810811,
-            "media_dia": 14516.851818181818,
-            "projecao": 304853.8881818182
-        },
-        {
-            "nome": "Alice TVA",
-            "valor": 126782.83,
-            "meta": 200000,
-            "pct_meta": 63.391414999999995,
-            "media_dia": 11525.711818181819,
-            "projecao": 242039.94818181818
-        }
-    ],
-    "conversao": {
-        "b2c": {
-            "meta": 0.54,
-            "atual": 0.28
-        },
-        "corp": {
-            "meta": 0.55,
-            "atual": 0.5
-        },
-        "cac_corp_meta": 10
-    }
+const GRAPH = "https://graph.microsoft.com/v1.0";
+
+// Nomes reais das abas em uso na planilha (não são os meses completos)
+const ABAS_POR_MES = [
+  "JAN", "FEV", "MAR", "ABRIL", "MAIO", "JUNHO",
+  "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
+];
+
+const CANAIS = [
+  { nome: "Revenda",     codcencus: 10102001, linhaCanal: 3,  vendIni: 13, vendFim: 18, histCols: ["G","H"] },
+  { nome: "Corporativo", codcencus: 10102002, linhaCanal: 4,  vendIni: 21, vendFim: 28, histCols: ["L","M"] },
+  { nome: "Digital",     codcencus: 10102003, linhaCanal: 5,  vendIni: 31, vendFim: 34, histCols: ["Q","R"] }
+];
+
+const PROJETO_BQ = "elements-489322";
+const DATASET_BQ = "dw_bronze";
+
+// ---------------------------------------------------------------------------
+//  Helpers de valor
+// ---------------------------------------------------------------------------
+function num(v) {
+  if (v === null || v === undefined || v === "") return 0;
+  if (typeof v === "number") return v;
+  let s = String(v).replace(/[R$\s%]/g, "");
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+const pctFrac = v => num(v) * 100;   // planilha guarda 0.5049 -> 50.49
+function cel(m, linha, col) {
+  if (!m || !m[linha]) return null;
+  const v = m[linha][col];
+  return v === undefined ? null : v;
+}
+
+// ---------------------------------------------------------------------------
+//  SHAREPOINT
+// ---------------------------------------------------------------------------
+async function tokenGraph() {
+  const url = `https://login.microsoftonline.com/${process.env.MS_TENANT_ID}/oauth2/v2.0/token`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: process.env.MS_CLIENT_ID,
+      client_secret: process.env.MS_CLIENT_SECRET,
+      scope: "https://graph.microsoft.com/.default",
+      grant_type: "client_credentials"
+    }).toString()
+  });
+  if (!res.ok) throw new Error(`Token Microsoft falhou (${res.status}): ${await res.text()}`);
+  return (await res.json()).access_token;
+}
+
+// Lê um range específico de uma aba específica — nunca varre o arquivo inteiro,
+// então a restrição das 7 abas ocultas legadas não nos afeta.
+async function lerRange(token, aba, endereco) {
+  const url = `${GRAPH}/sites/${process.env.SHAREPOINT_SITE_ID}` +
+              `/drive/items/${process.env.SHAREPOINT_ITEM_ID}` +
+              `/workbook/worksheets('${encodeURIComponent(aba)}')` +
+              `/range(address='${endereco}')?$select=values`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`Leitura ${aba}!${endereco} falhou (${res.status}): ${await res.text()}`);
+  return (await res.json()).values;
+}
+
+// Vendedores de um bloco. Mantém quem tem meta e vendeu 0 (aparece com R$ 0).
+function vendedores(m, ini, fim) {
+  const out = [];
+  for (let r = ini; r <= fim; r++) {
+    const i = r - 1;                       // planilha 1-based -> range 0-based
+    const nome = String(cel(m, i, 0) ?? "").trim();
+    if (!nome || nome.toUpperCase() === "TOTAL") continue;
+    const meta = num(cel(m, i, 1));        // col B
+    const vend = num(cel(m, i, 2));        // col C
+    if (!meta && !vend) continue;
+    out.push({ nome, valor: vend, meta });
+  }
+  out.sort((a, b) => b.valor - a.valor);
+  return out.slice(0, 4);
+}
+
+// Histórico mensal da aba Dashboard (range A4:S15 = Jan..Dez)
+function historico(mHist, colAting, colMeta, ateIdx) {
+  const ABREV = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const IDX = { A:0,B:1,C:2,D:3,E:4,F:5,G:6,H:7,I:8,J:9,K:10,L:11,M:12,N:13,O:14,P:15,Q:16,R:17,S:18 };
+  const out = [];
+  for (let i = 0; i <= ateIdx && i < 12; i++) {
+    const a = num(cel(mHist, i, IDX[colAting]));
+    const m = num(cel(mHist, i, IDX[colMeta]));
+    if (!a && !m) continue;                // mês futuro, sem movimento
+    out.push({ mes: ABREV[i], atingido: a, meta: m });
+  }
+  return out;
+}
+
+async function lerPlanilha(aba, mesIdx) {
+  const token = await tokenGraph();
+  const [mMes, mHist] = await Promise.all([
+    lerRange(token, aba, "A1:N43"),
+    lerRange(token, "Dashboard", "A4:S15")
+  ]);
+
+  const hero = {
+    valor: num(cel(mMes, 2, 1)),               // B3  Vendido
+    meta: num(cel(mMes, 1, 1)),                // B2  META
+    pct_atingido: pctFrac(cel(mMes, 3, 1)),    // B4  % Atingido
+    projecao: num(cel(mMes, 5, 1)),            // B6  Projeção
+    projecao_pct: pctFrac(cel(mMes, 6, 1))     // B7  Projeção %
+  };
+  hero.alcance_vs_previsto = hero.projecao_pct;
+
+  const canais = CANAIS.map(cfg => {
+    const i = cfg.linhaCanal - 1;
+    return {
+      nome: cfg.nome,
+      realizado:    num(cel(mMes, i, 8)),      // col I
+      projetado:    num(cel(mMes, i, 9)),      // col J
+      projecao_pct: pctFrac(cel(mMes, i, 10)), // col K
+      meta:         num(cel(mMes, i, 11)),     // col L
+      pct_meta:     pctFrac(cel(mMes, i, 12)), // col M
+      falta:        num(cel(mMes, i, 13)),     // col N
+      historico:    historico(mHist, cfg.histCols[0], cfg.histCols[1], mesIdx),
+      vendedores:   vendedores(mMes, cfg.vendIni, cfg.vendFim)
+    };
+  });
+  canais.forEach(c => { c.alcance_vs_previsto = c.projecao_pct; });
+
+  // Taxas de conversão do site (planilha guarda como texto "0,54%")
+  const conversao = {
+    b2c:  { meta: num(cel(mMes, 19, 12)), atual: num(cel(mMes, 20, 12)) },
+    corp: { meta: num(cel(mMes, 19, 13)), atual: num(cel(mMes, 20, 13)) }
+  };
+
+  return { hero, canais, conversao };
+}
+
+// ---------------------------------------------------------------------------
+//  BIGQUERY
+//
+//  ATENÇÃO: os nomes de tabela/coluna abaixo seguem o padrão Sankhya
+//  (TGFCAB cabeçalho · TGFITE itens · TGFPRO produto · TGFPAR parceiro) e
+//  AINDA NÃO FORAM CONFIRMADOS contra o schema real. Rodar o endpoint com
+//  ?schema=1 para listar tabelas/colunas de verdade e ajustar as constantes.
+// ---------------------------------------------------------------------------
+const T = {
+  cab: `\`${PROJETO_BQ}.${DATASET_BQ}.brz_sankhya_tgfcab_full\``,
+  ite: `\`${PROJETO_BQ}.${DATASET_BQ}.brz_sankhya_tgfite_full\``,
+  pro: `\`${PROJETO_BQ}.${DATASET_BQ}.brz_sankhya_tgfpro_full\``,
+  par: `\`${PROJETO_BQ}.${DATASET_BQ}.brz_sankhya_tgfpar_full\``
 };
 
-  data.atualizado_em = new Date().toISOString();
-  data.__aviso = "snapshot congelado - nao ao vivo";
+function clienteBQ() {
+  const raw = process.env.BQ_SERVICE_ACCOUNT_JSON;
+  if (!raw) throw new Error("BQ_SERVICE_ACCOUNT_JSON não configurada");
+  const { BigQuery } = require("@google-cloud/bigquery");
+  return new BigQuery({
+    projectId: PROJETO_BQ,
+    credentials: JSON.parse(raw)
+  });
+}
 
+// Base comum: notas de venda do mês corrente, deduplicadas.
+// tipmov='V' exclui devoluções. QUALIFY resolve duplicata de ingestão das _full.
+const CTE_CAB = `
+  cab AS (
+    SELECT nunota, codcencus, codparc, vlrnota, dtneg
+    FROM ${T.cab}
+    WHERE tipmov = 'V'
+      AND DATE(dtneg) BETWEEN DATE_TRUNC(CURRENT_DATE(), MONTH) AND CURRENT_DATE()
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY nunota ORDER BY ingested_at_utc DESC) = 1
+  )`;
+
+const Q = {
+  // Top 5 produtos por RECEITA (não por unidades), por canal
+  produtos: `
+    WITH ${CTE_CAB},
+    ite AS (
+      SELECT nunota, sequencia, codprod, qtdneg, vlrtot
+      FROM ${T.ite}
+      QUALIFY ROW_NUMBER() OVER (PARTITION BY nunota, sequencia ORDER BY ingested_at_utc DESC) = 1
+    ),
+    pro AS (
+      SELECT codprod, descrprod
+      FROM ${T.pro}
+      QUALIFY ROW_NUMBER() OVER (PARTITION BY codprod ORDER BY ingested_at_utc DESC) = 1
+    )
+    SELECT cab.codcencus, pro.descrprod AS nome,
+           SUM(ite.vlrtot) AS receita, SUM(ite.qtdneg) AS unidades
+    FROM cab
+    JOIN ite USING (nunota)
+    LEFT JOIN pro USING (codprod)
+    WHERE cab.codcencus IN (10102001, 10102002, 10102003)
+    GROUP BY cab.codcencus, nome
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY cab.codcencus ORDER BY receita DESC) <= 5
+    ORDER BY cab.codcencus, receita DESC`,
+
+  // Pedidos, ticket médio e maior cliente do mês, por canal
+  pedidos: `
+    WITH ${CTE_CAB},
+    par AS (
+      SELECT codparc, nomeparc
+      FROM ${T.par}
+      QUALIFY ROW_NUMBER() OVER (PARTITION BY codparc ORDER BY ingested_at_utc DESC) = 1
+    ),
+    agg AS (
+      SELECT codcencus, COUNT(DISTINCT nunota) AS pedidos,
+             SUM(vlrnota) AS receita,
+             SAFE_DIVIDE(SUM(vlrnota), COUNT(DISTINCT nunota)) AS ticket_medio
+      FROM cab GROUP BY codcencus
+    ),
+    top_cli AS (
+      SELECT cab.codcencus, par.nomeparc AS cliente, SUM(cab.vlrnota) AS valor
+      FROM cab LEFT JOIN par USING (codparc)
+      GROUP BY cab.codcencus, cliente
+      QUALIFY ROW_NUMBER() OVER (PARTITION BY cab.codcencus ORDER BY valor DESC) = 1
+    )
+    SELECT agg.*, top_cli.cliente, top_cli.valor AS valor_cliente
+    FROM agg LEFT JOIN top_cli USING (codcencus)`,
+
+  // Representatividade por UF — só canal Digital (B2C)
+  territorio: `
+    WITH ${CTE_CAB},
+    par AS (
+      SELECT codparc, uf
+      FROM ${T.par}
+      QUALIFY ROW_NUMBER() OVER (PARTITION BY codparc ORDER BY ingested_at_utc DESC) = 1
+    )
+    SELECT par.uf AS nome, SUM(cab.vlrnota) AS receita,
+           SAFE_DIVIDE(SUM(cab.vlrnota), SUM(SUM(cab.vlrnota)) OVER ()) * 100 AS pct
+    FROM cab LEFT JOIN par USING (codparc)
+    WHERE cab.codcencus = 10102003
+    GROUP BY nome
+    ORDER BY receita DESC
+    LIMIT 5`,
+
+  // Descobre o schema real do dataset (não cobra: INFORMATION_SCHEMA é grátis)
+  schema: `
+    SELECT table_name, column_name, data_type
+    FROM \`${PROJETO_BQ}.${DATASET_BQ}.INFORMATION_SCHEMA.COLUMNS\`
+    ORDER BY table_name, ordinal_position`
+};
+
+async function lerBigQuery() {
+  const bq = clienteBQ();
+  const run = async q => (await bq.query({ query: q, location: "US" }))[0];
+
+  // Rodadas independentes: se uma query falhar, as outras ainda entregam
+  const [prods, peds, terr] = await Promise.allSettled([
+    run(Q.produtos), run(Q.pedidos), run(Q.territorio)
+  ]);
+
+  const porCanal = {};
+  CANAIS.forEach(c => {
+    porCanal[c.nome] = {
+      produtos: [], pedidos: null, ticket_medio: null, maior_cliente: null
+    };
+  });
+  const nomePorCod = {};
+  CANAIS.forEach(c => { nomePorCod[c.codcencus] = c.nome; });
+
+  if (prods.status === "fulfilled") {
+    prods.value.forEach(r => {
+      const alvo = porCanal[nomePorCod[Number(r.codcencus)]];
+      if (alvo) alvo.produtos.push({
+        nome: r.nome || "(sem descrição)",
+        receita: Number(r.receita) || 0,
+        unidades: Number(r.unidades) || 0
+      });
+    });
+  }
+
+  if (peds.status === "fulfilled") {
+    peds.value.forEach(r => {
+      const alvo = porCanal[nomePorCod[Number(r.codcencus)]];
+      if (!alvo) return;
+      alvo.pedidos = Number(r.pedidos) || 0;
+      alvo.ticket_medio = Number(r.ticket_medio) || 0;
+      if (r.cliente) alvo.maior_cliente = {
+        nome: r.cliente, valor: Number(r.valor_cliente) || 0
+      };
+    });
+  }
+
+  const territorio = { lista: [], sessoes: null, conversao: null };
+  if (terr.status === "fulfilled") {
+    territorio.lista = terr.value.map(r => ({
+      nome: r.nome || "(sem UF)",
+      pct: Number(r.pct) || 0,
+      receita: Number(r.receita) || 0
+    }));
+  }
+
+  const erros = [prods, peds, terr]
+    .filter(r => r.status === "rejected")
+    .map(r => String(r.reason && r.reason.message ? r.reason.message : r.reason));
+
+  return { porCanal, territorio, erros };
+}
+
+// ---------------------------------------------------------------------------
+//  HANDLER
+// ---------------------------------------------------------------------------
+exports.handler = async function (event) {
+  const qs = (event && event.queryStringParameters) || {};
+
+  // ?schema=1 -> lista tabelas e colunas reais do dataset (para ajustar as queries)
+  if (qs.schema === "1") {
+    try {
+      const bq = clienteBQ();
+      const [rows] = await bq.query({ query: Q.schema, location: "US" });
+      const porTabela = {};
+      rows.forEach(r => {
+        porTabela[r.table_name] = porTabela[r.table_name] || [];
+        porTabela[r.table_name].push(`${r.column_name} (${r.data_type})`);
+      });
+      return json(200, { tabelas: Object.keys(porTabela).length, schema: porTabela });
+    } catch (e) {
+      return json(500, { error: "Falha ao ler schema", detail: String(e.message || e) });
+    }
+  }
+
+  const aba = qs.mes || process.env.MES_ABA || ABAS_POR_MES[new Date().getMonth()];
+  const mesIdx = ABAS_POR_MES.indexOf(aba) >= 0
+    ? ABAS_POR_MES.indexOf(aba) : new Date().getMonth();
+
+  // As duas fontes em paralelo e independentes: uma falhar não derruba a outra
+  const [sp, bq] = await Promise.allSettled([ lerPlanilha(aba, mesIdx), lerBigQuery() ]);
+
+  const avisos = [];
+
+  if (sp.status === "rejected") {
+    // Sem a planilha não há painel — hero e canais vêm todos dela
+    return json(500, {
+      error: "Falha ao ler a planilha (SharePoint)",
+      detail: String(sp.reason && sp.reason.message ? sp.reason.message : sp.reason)
+    });
+  }
+
+  const { hero, canais, conversao } = sp.value;
+
+  if (bq.status === "fulfilled") {
+    canais.forEach(c => {
+      const extra = bq.value.porCanal[c.nome];
+      if (extra) Object.assign(c, extra);
+    });
+    if (bq.value.erros.length) avisos.push(...bq.value.erros);
+    var territorio = bq.value.territorio;
+  } else {
+    canais.forEach(c => {
+      c.produtos = []; c.pedidos = null; c.ticket_medio = null; c.maior_cliente = null;
+    });
+    var territorio = { lista: [], sessoes: null, conversao: null };
+    avisos.push("BigQuery: " + String(bq.reason && bq.reason.message ? bq.reason.message : bq.reason));
+  }
+
+  // Conversão do site: a planilha tem o número; usamos ela como fonte
+  if (territorio.conversao == null && conversao.b2c) {
+    territorio.conversao = conversao.b2c.atual;
+  }
+
+  return json(200, {
+    atualizado_em: new Date().toISOString(),
+    mes_vigente: aba,
+    hero, canais, territorio, conversao,
+    fonte_rodape: "Meta/realizado: planilha GERAL 2026 (SharePoint) · " +
+                  "Produtos/território: BigQuery (" + PROJETO_BQ + ")",
+    avisos: avisos.length ? avisos : undefined
+  });
+};
+
+function json(status, body) {
   return {
-    statusCode: 200,
+    statusCode: status,
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-cache, no-store, must-revalidate"
     },
-    body: JSON.stringify(data)
+    body: JSON.stringify(body)
   };
-};
+}
