@@ -405,7 +405,7 @@
   /* Rede de segurança: recarrega a cada 5 min com cache-busting */
   setTimeout(function(){
     location.replace(location.pathname + '?_r=' + Date.now());
-  }, 5*60*1000);
+  }, 6 * 60 * 60 * 1000);
 })();
 </script>
 </body>
