@@ -1,11 +1,16 @@
 // ============================================================================
 //  PAINEL COMERCIAL — função de dados
 //
-//  Roda no servidor da Netlify. Consulta as DUAS fontes ao vivo a cada
-//  chamada e devolve um JSON no formato que o index.html espera.
+//  Roda no servidor da Netlify. Consulta a planilha (SharePoint / Microsoft
+//  Graph) a cada chamada e devolve um JSON no formato que o index.html e o
+//  compacto.html esperam.
 //
-//    SharePoint (Microsoft Graph)  -> hero, canais, evolução, vendedores
-//    BigQuery (Google Cloud)       -> território, produtos, pedidos, ticket
+//    SharePoint (Microsoft Graph)  -> hero, canais, evolução, vendedores,
+//                                     conversão do site, ritmo do canal
+//
+//  Fonte única de dados: a planilha "GERAL 2026". Não há mais consulta a
+//  BigQuery — os blocos que antes vinham de lá (território e top produtos)
+//  agora usam indicadores calculados a partir da própria planilha.
 //
 //  CREDENCIAIS: lidas de variáveis de ambiente. Nunca no código, nunca no
 //  GitHub. Configurar em Netlify > Site configuration > Environment variables:
@@ -15,11 +20,11 @@
 //    MS_CLIENT_SECRET          (Azure > Certificates & secrets)  [EXPIRA!]
 //    SHAREPOINT_SITE_ID        (Graph Explorer)
 //    SHAREPOINT_ITEM_ID        (Graph Explorer)
-//    BQ_SERVICE_ACCOUNT_JSON   (conteúdo do arquivo JSON, colado inteiro)
 //    MES_ABA                   (opcional: força uma aba, ex. "AGOSTO")
 //
-//  DEGRADAÇÃO: se uma fonte falhar, a outra ainda é entregue. O painel mostra
-//  "aguardando" no bloco sem dado em vez de número inventado (regra 7 da spec).
+//  DEGRADAÇÃO: se a planilha falhar, não há painel — hero e canais vêm todos
+//  dela. Nesse caso a função devolve erro 500 e o front mostra a mensagem de
+//  "não foi possível carregar os dados" (regra 7 da spec original).
 // ============================================================================
 
 const GRAPH = "https://graph.microsoft.com/v1.0";
@@ -30,14 +35,14 @@ const ABAS_POR_MES = [
   "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
 ];
 
+// tipoDias define qual contagem de dias trabalhados usar no cálculo de
+// "média de vendas por dia" de cada canal: b2b usa a célula E3 (Trabalhados
+// uteis), b2c usa a célula E7 (Trabalhados) — ambas já existem na planilha.
 const CANAIS = [
-  { nome: "Revenda",     codcencus: 10102001, linhaCanal: 3,  vendIni: 13, vendFim: 18, histCols: ["G","H"] },
-  { nome: "Corporativo", codcencus: 10102002, linhaCanal: 4,  vendIni: 21, vendFim: 28, histCols: ["L","M"] },
-  { nome: "Digital",     codcencus: 10102003, linhaCanal: 5,  vendIni: 31, vendFim: 34, histCols: ["Q","R"] }
+  { nome: "Revenda",     codcencus: 10102001, linhaCanal: 3,  vendIni: 13, vendFim: 18, histCols: ["G","H"], tipoDias: "b2b" },
+  { nome: "Corporativo", codcencus: 10102002, linhaCanal: 4,  vendIni: 21, vendFim: 28, histCols: ["L","M"], tipoDias: "b2b" },
+  { nome: "Digital",     codcencus: 10102003, linhaCanal: 5,  vendIni: 31, vendFim: 34, histCols: ["Q","R"], tipoDias: "b2c" }
 ];
-
-const PROJETO_BQ = "elements-489322";
-const DATASET_BQ = "dw_bronze";
 
 // ---------------------------------------------------------------------------
 //  Helpers de valor
@@ -88,7 +93,10 @@ async function lerRange(token, aba, endereco) {
   return (await res.json()).values;
 }
 
-// Vendedores de um bloco. Mantém quem tem meta e vendeu 0 (aparece com R$ 0).
+// Vendedores/composição de um bloco. Mantém quem tem meta e vendeu 0
+// (aparece com R$ 0). Devolve até 8 linhas: as 4 primeiras alimentam o
+// ranking da linha 3, as 4 seguintes (se existirem) ficam disponíveis para
+// quem precisar de mais detalhe.
 function vendedores(m, ini, fim) {
   const out = [];
   for (let r = ini; r <= fim; r++) {
@@ -101,7 +109,7 @@ function vendedores(m, ini, fim) {
     out.push({ nome, valor: vend, meta });
   }
   out.sort((a, b) => b.valor - a.valor);
-  return out.slice(0, 4);
+  return out.slice(0, 8);
 }
 
 // Histórico mensal da aba Dashboard (range A4:S15 = Jan..Dez)
@@ -134,16 +142,28 @@ async function lerPlanilha(aba, mesIdx) {
   };
   hero.alcance_vs_previsto = hero.projecao_pct;
 
+  // Dias trabalhados no mês até agora — usados para calcular a "média de
+  // vendas por dia" de cada canal. E3 = Trabalhados uteis (b2b);
+  // E7 = Trabalhados (b2c). Presentes nas mesmas células em todas as abas.
+  const diasTrabalhados = {
+    b2b: num(cel(mMes, 2, 4)),   // E3
+    b2c: num(cel(mMes, 6, 4))    // E7
+  };
+
   const canais = CANAIS.map(cfg => {
     const i = cfg.linhaCanal - 1;
+    const realizado = num(cel(mMes, i, 8));    // col I
+    const falta     = num(cel(mMes, i, 13));   // col N
+    const dias      = cfg.tipoDias === "b2c" ? diasTrabalhados.b2c : diasTrabalhados.b2b;
     return {
       nome: cfg.nome,
-      realizado:    num(cel(mMes, i, 8)),      // col I
+      realizado,
       projetado:    num(cel(mMes, i, 9)),      // col J
       projecao_pct: pctFrac(cel(mMes, i, 10)), // col K
       meta:         num(cel(mMes, i, 11)),     // col L
       pct_meta:     pctFrac(cel(mMes, i, 12)), // col M
-      falta:        num(cel(mMes, i, 13)),     // col N
+      falta,
+      media_dia:    dias > 0 ? realizado / dias : 0,
       historico:    historico(mHist, cfg.histCols[0], cfg.histCols[1], mesIdx),
       vendedores:   vendedores(mMes, cfg.vendIni, cfg.vendFim)
     };
@@ -160,236 +180,33 @@ async function lerPlanilha(aba, mesIdx) {
 }
 
 // ---------------------------------------------------------------------------
-//  BIGQUERY
-//
-//  ATENÇÃO: os nomes de tabela/coluna abaixo seguem o padrão Sankhya
-//  (TGFCAB cabeçalho · TGFITE itens · TGFPRO produto · TGFPAR parceiro) e
-//  AINDA NÃO FORAM CONFIRMADOS contra o schema real. Rodar o endpoint com
-//  ?schema=1 para listar tabelas/colunas de verdade e ajustar as constantes.
-// ---------------------------------------------------------------------------
-const T = {
-  cab: `\`${PROJETO_BQ}.${DATASET_BQ}.brz_sankhya_tgfcab_full\``,
-  ite: `\`${PROJETO_BQ}.${DATASET_BQ}.brz_sankhya_tgfite_full\``,
-  pro: `\`${PROJETO_BQ}.${DATASET_BQ}.brz_sankhya_tgfpro_full\``,
-  par: `\`${PROJETO_BQ}.${DATASET_BQ}.brz_sankhya_tgfpar_full\``
-};
-
-function clienteBQ() {
-  const raw = process.env.BQ_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error("BQ_SERVICE_ACCOUNT_JSON não configurada");
-  const { BigQuery } = require("@google-cloud/bigquery");
-  return new BigQuery({
-    projectId: PROJETO_BQ,
-    credentials: JSON.parse(raw)
-  });
-}
-
-// Base comum: notas de venda do mês corrente, deduplicadas.
-// tipmov='V' exclui devoluções. QUALIFY resolve duplicata de ingestão das _full.
-const CTE_CAB = `
-  cab AS (
-    SELECT nunota, codcencus, codparc, vlrnota, dtneg
-    FROM ${T.cab}
-    WHERE tipmov = 'V'
-      AND DATE(dtneg) BETWEEN DATE_TRUNC(CURRENT_DATE(), MONTH) AND CURRENT_DATE()
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY nunota ORDER BY ingested_at_utc DESC) = 1
-  )`;
-
-const Q = {
-  // Top 5 produtos por RECEITA (não por unidades), por canal
-  produtos: `
-    WITH ${CTE_CAB},
-    ite AS (
-      SELECT nunota, sequencia, codprod, qtdneg, vlrtot
-      FROM ${T.ite}
-      QUALIFY ROW_NUMBER() OVER (PARTITION BY nunota, sequencia ORDER BY ingested_at_utc DESC) = 1
-    ),
-    pro AS (
-      SELECT codprod, descrprod
-      FROM ${T.pro}
-      QUALIFY ROW_NUMBER() OVER (PARTITION BY codprod ORDER BY ingested_at_utc DESC) = 1
-    )
-    SELECT cab.codcencus, pro.descrprod AS nome,
-           SUM(ite.vlrtot) AS receita, SUM(ite.qtdneg) AS unidades
-    FROM cab
-    JOIN ite USING (nunota)
-    LEFT JOIN pro USING (codprod)
-    WHERE cab.codcencus IN (10102001, 10102002, 10102003)
-    GROUP BY cab.codcencus, nome
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY cab.codcencus ORDER BY receita DESC) <= 5
-    ORDER BY cab.codcencus, receita DESC`,
-
-  // Pedidos, ticket médio e maior cliente do mês, por canal
-  pedidos: `
-    WITH ${CTE_CAB},
-    par AS (
-      SELECT codparc, nomeparc
-      FROM ${T.par}
-      QUALIFY ROW_NUMBER() OVER (PARTITION BY codparc ORDER BY ingested_at_utc DESC) = 1
-    ),
-    agg AS (
-      SELECT codcencus, COUNT(DISTINCT nunota) AS pedidos,
-             SUM(vlrnota) AS receita,
-             SAFE_DIVIDE(SUM(vlrnota), COUNT(DISTINCT nunota)) AS ticket_medio
-      FROM cab GROUP BY codcencus
-    ),
-    top_cli AS (
-      SELECT cab.codcencus, par.nomeparc AS cliente, SUM(cab.vlrnota) AS valor
-      FROM cab LEFT JOIN par USING (codparc)
-      GROUP BY cab.codcencus, cliente
-      QUALIFY ROW_NUMBER() OVER (PARTITION BY cab.codcencus ORDER BY valor DESC) = 1
-    )
-    SELECT agg.*, top_cli.cliente, top_cli.valor AS valor_cliente
-    FROM agg LEFT JOIN top_cli USING (codcencus)`,
-
-  // Representatividade por UF — só canal Digital (B2C)
-  territorio: `
-    WITH ${CTE_CAB},
-    par AS (
-      SELECT codparc, uf
-      FROM ${T.par}
-      QUALIFY ROW_NUMBER() OVER (PARTITION BY codparc ORDER BY ingested_at_utc DESC) = 1
-    )
-    SELECT par.uf AS nome, SUM(cab.vlrnota) AS receita,
-           SAFE_DIVIDE(SUM(cab.vlrnota), SUM(SUM(cab.vlrnota)) OVER ()) * 100 AS pct
-    FROM cab LEFT JOIN par USING (codparc)
-    WHERE cab.codcencus = 10102003
-    GROUP BY nome
-    ORDER BY receita DESC
-    LIMIT 5`,
-
-  // Descobre o schema real do dataset (não cobra: INFORMATION_SCHEMA é grátis)
-  schema: `
-    SELECT table_name, column_name, data_type
-    FROM \`${PROJETO_BQ}.${DATASET_BQ}.INFORMATION_SCHEMA.COLUMNS\`
-    ORDER BY table_name, ordinal_position`
-};
-
-async function lerBigQuery() {
-  const bq = clienteBQ();
-  const run = async q => (await bq.query({ query: q, location: "US" }))[0];
-
-  // Rodadas independentes: se uma query falhar, as outras ainda entregam
-  const [prods, peds, terr] = await Promise.allSettled([
-    run(Q.produtos), run(Q.pedidos), run(Q.territorio)
-  ]);
-
-  const porCanal = {};
-  CANAIS.forEach(c => {
-    porCanal[c.nome] = {
-      produtos: [], pedidos: null, ticket_medio: null, maior_cliente: null
-    };
-  });
-  const nomePorCod = {};
-  CANAIS.forEach(c => { nomePorCod[c.codcencus] = c.nome; });
-
-  if (prods.status === "fulfilled") {
-    prods.value.forEach(r => {
-      const alvo = porCanal[nomePorCod[Number(r.codcencus)]];
-      if (alvo) alvo.produtos.push({
-        nome: r.nome || "(sem descrição)",
-        receita: Number(r.receita) || 0,
-        unidades: Number(r.unidades) || 0
-      });
-    });
-  }
-
-  if (peds.status === "fulfilled") {
-    peds.value.forEach(r => {
-      const alvo = porCanal[nomePorCod[Number(r.codcencus)]];
-      if (!alvo) return;
-      alvo.pedidos = Number(r.pedidos) || 0;
-      alvo.ticket_medio = Number(r.ticket_medio) || 0;
-      if (r.cliente) alvo.maior_cliente = {
-        nome: r.cliente, valor: Number(r.valor_cliente) || 0
-      };
-    });
-  }
-
-  const territorio = { lista: [], sessoes: null, conversao: null };
-  if (terr.status === "fulfilled") {
-    territorio.lista = terr.value.map(r => ({
-      nome: r.nome || "(sem UF)",
-      pct: Number(r.pct) || 0,
-      receita: Number(r.receita) || 0
-    }));
-  }
-
-  const erros = [prods, peds, terr]
-    .filter(r => r.status === "rejected")
-    .map(r => String(r.reason && r.reason.message ? r.reason.message : r.reason));
-
-  return { porCanal, territorio, erros };
-}
-
-// ---------------------------------------------------------------------------
 //  HANDLER
 // ---------------------------------------------------------------------------
 exports.handler = async function (event) {
   const qs = (event && event.queryStringParameters) || {};
 
-  // ?schema=1 -> lista tabelas e colunas reais do dataset (para ajustar as queries)
-  if (qs.schema === "1") {
-    try {
-      const bq = clienteBQ();
-      const [rows] = await bq.query({ query: Q.schema, location: "US" });
-      const porTabela = {};
-      rows.forEach(r => {
-        porTabela[r.table_name] = porTabela[r.table_name] || [];
-        porTabela[r.table_name].push(`${r.column_name} (${r.data_type})`);
-      });
-      return json(200, { tabelas: Object.keys(porTabela).length, schema: porTabela });
-    } catch (e) {
-      return json(500, { error: "Falha ao ler schema", detail: String(e.message || e) });
-    }
-  }
-
   const aba = qs.mes || process.env.MES_ABA || ABAS_POR_MES[new Date().getMonth()];
   const mesIdx = ABAS_POR_MES.indexOf(aba) >= 0
     ? ABAS_POR_MES.indexOf(aba) : new Date().getMonth();
 
-  // As duas fontes em paralelo e independentes: uma falhar não derruba a outra
-  const [sp, bq] = await Promise.allSettled([ lerPlanilha(aba, mesIdx), lerBigQuery() ]);
-
-  const avisos = [];
-
-  if (sp.status === "rejected") {
+  let sp;
+  try {
+    sp = await lerPlanilha(aba, mesIdx);
+  } catch (e) {
     // Sem a planilha não há painel — hero e canais vêm todos dela
     return json(500, {
       error: "Falha ao ler a planilha (SharePoint)",
-      detail: String(sp.reason && sp.reason.message ? sp.reason.message : sp.reason)
+      detail: String(e && e.message ? e.message : e)
     });
   }
 
-  const { hero, canais, conversao } = sp.value;
-
-  if (bq.status === "fulfilled") {
-    canais.forEach(c => {
-      const extra = bq.value.porCanal[c.nome];
-      if (extra) Object.assign(c, extra);
-    });
-    if (bq.value.erros.length) avisos.push(...bq.value.erros);
-    var territorio = bq.value.territorio;
-  } else {
-    canais.forEach(c => {
-      c.produtos = []; c.pedidos = null; c.ticket_medio = null; c.maior_cliente = null;
-    });
-    var territorio = { lista: [], sessoes: null, conversao: null };
-    avisos.push("BigQuery: " + String(bq.reason && bq.reason.message ? bq.reason.message : bq.reason));
-  }
-
-  // Conversão do site: a planilha tem o número; usamos ela como fonte
-  if (territorio.conversao == null && conversao.b2c) {
-    territorio.conversao = conversao.b2c.atual;
-  }
+  const { hero, canais, conversao } = sp;
 
   return json(200, {
     atualizado_em: new Date().toISOString(),
     mes_vigente: aba,
-    hero, canais, territorio, conversao,
-    fonte_rodape: "Meta/realizado: planilha GERAL 2026 (SharePoint) · " +
-                  "Produtos/território: BigQuery (" + PROJETO_BQ + ")",
-    avisos: avisos.length ? avisos : undefined
+    hero, canais, conversao,
+    fonte_rodape: "Fonte única: planilha GERAL 2026 (SharePoint)"
   });
 };
 
