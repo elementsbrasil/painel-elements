@@ -2,8 +2,6 @@
   "name": "elements-painel-comercial",
   "private": true,
   "version": "1.0.0",
-  "description": "Painel comercial video wall — consulta SharePoint (planilha) e BigQuery ao vivo.",
-  "dependencies": {
-    "@google-cloud/bigquery": "^7.9.0"
-  }
+  "description": "Painel comercial video wall — consulta SharePoint (planilha) ao vivo.",
+  "dependencies": {}
 }
