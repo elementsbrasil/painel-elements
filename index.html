@@ -532,6 +532,19 @@
     var todos = c.vendedores || [];
     var vend  = todos.slice(0, LIMITE_RANK);
 
+    /* Quem bateu a meta NUNCA pode ser cortado pelo limite do quadrante.
+       A lista vem ordenada por valor vendido, então um vendedor de meta
+       pequena pode bater 100% e mesmo assim ficar fora do top-N. Aqui os
+       batedores que sobraram de fora entram no lugar dos últimos não
+       batedores da lista visível, e a ordem por valor é refeita. */
+    var foraQueBateram = todos.slice(LIMITE_RANK).filter(bateu);
+    if (foraQueBateram.length) {
+      for (var k = vend.length - 1; k >= 0 && foraQueBateram.length; k--) {
+        if (!bateu(vend[k])) vend[k] = foraQueBateram.shift();
+      }
+      vend.sort(function(x, y){ return (y.valor||0) - (x.valor||0); });
+    }
+
     var cn = c.clientes_novos;
     var mini = '';
     if (cn && cn.total) {
