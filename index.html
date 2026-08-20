@@ -190,6 +190,17 @@
 
   .src{font-size:clamp(7.8px,2.541cqh,16.7px);color:var(--muted2);margin-top:1cqh;display:flex;align-items:center;gap:.5em}
   .dotsrc{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--lilac);flex:none}
+
+  /* R4 — indicadores do canal (substitui o antigo "top produtos" do BigQuery) */
+  .chanind{display:flex;flex-direction:column;justify-content:center;gap:2.4cqh;flex:1;min-height:0}
+  .chanind .item{display:flex;flex-direction:column;gap:.35cqh}
+  .chanind .v{font-family:'Red Hat Display';font-weight:800;color:#fff;line-height:.98;
+    letter-spacing:-.01em;font-size:clamp(16.8px,7.241cqh,54.5px)}
+  .chanind .v .cur{font-size:.42em;font-weight:700;color:var(--muted);margin-right:.12em;vertical-align:.18em}
+  .chanind .v.accent{color:var(--lilac)}
+  .chanind .l{font-size:clamp(8.6px,2.841cqh,18.3px);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .chanind .sub{font-size:clamp(8.6px,2.541cqh,15.3px);color:var(--muted2);margin-top:.1cqh}
+  .chanind .sub b{color:var(--muted);font-weight:500}
 </style>
 
 <style>
@@ -244,15 +255,15 @@
   <div class="cell canal-cell br bb" data-canal="1"></div>
   <div class="cell canal-cell bb"    data-canal="2"></div>
 
-  <!-- LINHA 3 — RANKING / TERRITÓRIO -->
+  <!-- LINHA 3 — RANKING DE VENDEDORES / COMPOSIÇÃO DO CANAL -->
   <div class="cell qcell br bb" data-rank="0"></div>
   <div class="cell qcell br bb" data-rank="1"></div>
-  <div class="cell qcell bb"    data-terr="1"></div>
+  <div class="cell qcell bb"    data-rank="2"></div>
 
-  <!-- LINHA 4 — PRODUTO & TICKET -->
-  <div class="cell qcell br" data-prod="0"></div>
-  <div class="cell qcell br" data-prod="1"></div>
-  <div class="cell qcell"    data-prod="2"></div>
+  <!-- LINHA 4 — INDICADORES DO CANAL (falta p/ meta, média/dia, conversão) -->
+  <div class="cell qcell br" data-canalind="0"></div>
+  <div class="cell qcell br" data-canalind="1"></div>
+  <div class="cell qcell"    data-canalind="2"></div>
 
 </div>
 
@@ -442,74 +453,37 @@
       '<div class="lb">'+rows+'</div>';
   }
 
-  /* ---------- LINHA 3 col 3 · território + sessões ---------- */
-  function renderTerr(el, t){
-    if (!el || !t) return;
-    var lista = t.lista || [];
-    var temDado = lista.length > 0;
-    var itens = '';
-    if (temDado) {
-      lista.forEach(function(r, i){
-        itens += '<div class="rg-item"><span class="n">'+String(i+1).padStart(2,'0')+'</span>' +
-          '<span class="t">'+esc(r.nome)+'</span><b>'+pct1(r.pct)+'</b></div>';
-      });
-    } else {
-      itens = '<div class="aguardando">Representatividade por território' +
-              '<span>aguardando BigQuery</span></div>';
-    }
-    /* Selo "ao vivo" só aparece quando existe dado de verdade —
-       um selo verde sobre bloco vazio confunde mais que ajuda. */
-    var selo = temDado ? '<span class="live"><i></i>BIGQUERY AO VIVO</span>' : '';
-    el.innerHTML =
-      '<div class="qhead"><span class="eyebrow" style="font-size:clamp(8.6px,2.841cqh,18.3px)">' +
-        'Território</span>' + selo + '</div>' +
-      '<div class="rg-list">'+itens+'</div>' +
-      '<div class="sess-stats">' +
-        '<div class="sess-stat"><div class="v">'+ouTraco(t.sessoes, miles)+'</div>' +
-          '<div class="l">Sessões · mês</div></div>' +
-        '<div class="sess-stat"><div class="v">'+ouTraco(t.conversao, pct2)+'</div>' +
-          '<div class="l">Conversão</div></div>' +
-      '</div>';
-  }
-
-  /* ---------- LINHA 4 · top produtos + pedidos/ticket ---------- */
-  function renderProd(el, c, mes, ehUltimo, fonteTxt){
+  /* ---------- LINHA 4 · indicadores do canal ----------
+     Revenda / Corporativo: falta para bater a meta + média de vendas/dia.
+     Digital: conversão do site (atual vs meta) + falta para bater a meta.
+     Tudo calculado a partir da planilha — sem BigQuery. */
+  function renderCanalInd(el, c, idx, conversao, fonteTxt){
     if (!el || !c) return;
-    var prods = c.produtos || [];
-    var porReceita = prods.length && prods[0].receita != null && prods[0].receita > 0;
+    var ehDigital = idx === 2;
+    var itens;
 
-    var itens = '';
-    if (prods.length) {
-      prods.forEach(function(p, i){
-        var val = porReceita ? brlAbrev(p.receita) : (miles(p.unidades) + ' un');
-        itens += '<div class="prod-item"><span class="n">'+String(i+1).padStart(2,'0')+'</span>' +
-          '<span class="t">'+esc(p.nome)+'</span><b>'+val+'</b></div>';
-      });
+    if (ehDigital) {
+      var cv = (conversao && conversao.b2c) || {};
+      itens =
+        '<div class="item"><div class="v accent">'+pct2(cv.atual)+'</div>' +
+          '<div class="l">Conversão do site</div>' +
+          '<div class="sub">meta: <b>'+pct2(cv.meta)+'</b></div></div>' +
+        '<div class="item"><div class="v"><span class="cur">R$</span>'+miles(c.falta)+'</div>' +
+          '<div class="l">Falta para bater a meta</div></div>';
     } else {
-      itens = '<div class="aguardando">Receita por produto' +
-              '<span>aguardando BigQuery</span></div>';
+      itens =
+        '<div class="item"><div class="v"><span class="cur">R$</span>'+miles(c.falta)+'</div>' +
+          '<div class="l">Falta para bater a meta</div></div>' +
+        '<div class="item"><div class="v accent"><span class="cur">R$</span>'+miles(c.media_dia)+'</div>' +
+          '<div class="l">Média de vendas · dia</div></div>';
     }
 
-    var nota = '';
-    if (ehUltimo && fonteTxt) {
-      nota = '<div class="src"><span class="dotsrc"></span>'+esc(fonteTxt)+'</div>';
-    } else if (c.maior_cliente && c.maior_cliente.nome) {
-      nota = '<div class="prod-note">Maior cliente do mês: <b>' +
-        esc(c.maior_cliente.nome)+'</b> · '+brl(c.maior_cliente.valor)+'</div>';
-    }
+    var nota = fonteTxt ? '<div class="src"><span class="dotsrc"></span>'+esc(fonteTxt)+'</div>' : '';
 
     el.innerHTML =
       '<div class="qhead"><span class="eyebrow" style="font-size:clamp(8.6px,2.841cqh,18.3px)">' +
-        'Top produtos</span></div>' +
-      '<div class="prod-list">'+itens+'</div>' +
-      '<div class="prod-stats">' +
-        '<div class="prod-stat"><div class="v">'+ouTraco(c.pedidos, miles)+'</div>' +
-          '<div class="l">Pedidos · '+esc(mes)+'</div></div>' +
-        '<div class="prod-stat"><div class="v">' +
-          (vazio(c.ticket_medio) ? '—'
-            : '<span class="cur">R$</span>' + miles(c.ticket_medio)) +
-          '</div><div class="l">Ticket médio</div></div>' +
-      '</div>' + nota;
+        'Ritmo do canal</span></div>' +
+      '<div class="chanind">'+itens+'</div>' + nota;
   }
 
   /* ---------- Preenche os campos simples (data-f) ---------- */
@@ -541,15 +515,14 @@
       renderCanal(document.querySelector('[data-canal="'+i+'"]'), c, i);
     });
 
-    /* Linha 3: colunas 1 e 2 = vendedores dos canais 0 e 1 */
+    /* Linha 3: ranking/composição dos 3 canais (Revenda, Corporativo, Digital) */
     renderRank(document.querySelector('[data-rank="0"]'), canais[0], 0, mes);
     renderRank(document.querySelector('[data-rank="1"]'), canais[1], 1, mes);
-    renderTerr(document.querySelector('[data-terr="1"]'), d.territorio);
+    renderRank(document.querySelector('[data-rank="2"]'), canais[2], 2, mes);
 
-    var fonte = d.fonte_rodape ||
-      'Produtos/pedidos: BigQuery (elements-489322) · Meta/realizado geral: planilha GERAL 2026 (SharePoint)';
+    var fonte = d.fonte_rodape || 'Fonte única: planilha GERAL 2026 (SharePoint)';
     canais.forEach(function(c, i){
-      renderProd(document.querySelector('[data-prod="'+i+'"]'), c, mes, i === 2, fonte);
+      renderCanalInd(document.querySelector('[data-canalind="'+i+'"]'), c, i, d.conversao, i === 2 ? fonte : '');
     });
 
     document.getElementById('stamp').textContent =
