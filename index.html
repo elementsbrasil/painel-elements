@@ -14,6 +14,7 @@
   :root{
     --bg:#050507; --line:#1E1E26; --line2:#2A2A33;
     --purple:#6F00FF; --lilac:#B47CFF;
+    --green:#43E08A;
     --ink:#FFFFFF; --ink2:#C6C6C6; --muted:#8A8A92; --muted2:#5C5C66;
   }
   html{overflow:hidden}
@@ -43,11 +44,19 @@
   /* each cell === one physical 65" TV. container-type:size makes cqh/cqw inside a cell
      relative to THAT cell's own box (≈ same scale as a single 16:9 screen).
      padding ≈ margem de segurança (~40px numa parede 3840x2880 nativa) — nada
-     crítico encosta na emenda entre TVs. */
+     crítico encosta na emenda entre TVs.
+
+     CORREÇÃO IMPORTANTE: o padding estava em 5.6cqh/3.2cqw, mas uma unidade de
+     container NA PRÓPRIA .cell não pode se medir por ela mesma — ela cai para o
+     container de cima (.wall, 1080px de altura). Resultado: 60px de padding em
+     cima e embaixo numa célula de 270px, ou seja 45% do quadrante virava margem.
+     Era isso que empurrava o 1º vendedor por cima do título "Corporativo" e que
+     deixava a linha 4 com muito espaço pra pouca informação. Agora é px fixo no
+     canvas (20px aqui = ~40px na parede nativa, exatamente a intenção original). */
   .cell{position:relative;overflow:hidden;min-width:0;min-height:0;
     container-type:size;container-name:tv;
     display:flex;flex-direction:column;
-    padding:5.6cqh 3.2cqw}
+    padding:20px 28px}
   .cell.br{border-right:3px solid var(--line)}
   .cell.bb{border-bottom:3px solid var(--line)}
 
@@ -87,9 +96,18 @@
   .hero-alc .v{font-family:'Red Hat Display';font-weight:700;color:var(--lilac);font-size:clamp(11.1px,3.641cqh,23.7px)}
   .hero-alc .l{font-size:clamp(8.8px,2.741cqh,17.6px);color:var(--muted)}
   .hero-ytd .val{font-family:'Red Hat Display';font-weight:800;color:#fff;
-    font-size:clamp(18.9px,9.341cqh,90px);letter-spacing:-.01em;margin-top:1cqh}
-  .hero-ytd .sub{font-size:clamp(10.2px,3.641cqh,23.7px);color:var(--muted);margin-top:.9cqh;max-width:90%}
+    font-size:clamp(18.9px,9.341cqh,90px);letter-spacing:-.01em;margin-top:1cqh;line-height:1}
+  .hero-ytd .sub{font-size:clamp(10.2px,3.641cqh,23.7px);color:var(--muted);margin-top:.9cqh;max-width:100%}
   .hero-ytd .sub b{color:var(--lilac);font-weight:500}
+
+  /* "Projetado" agora é rótulo explícito LOGO ABAIXO do número, e não mais só
+     um prefixo perdido na eyebrow — quem olha de longe lê "94%" e em seguida
+     "PROJETADO DA META DO MÊS", sem precisar procurar o contexto acima. */
+  .hero-ytd .projlab{font-family:'Outfit';font-weight:600;text-transform:uppercase;
+    letter-spacing:.16em;color:var(--lilac);font-size:clamp(9.0px,3.141cqh,20.4px);
+    margin-top:.7cqh;line-height:1.2}
+  .hero-ytd .projlab small{display:block;font-weight:400;letter-spacing:.14em;
+    color:var(--muted);font-size:.78em;margin-top:.25em}
 
   /* ===== R2 — EVOLUÇÃO ===== */
   .canal-cell{justify-content:flex-start}
@@ -118,7 +136,8 @@
   .barlabel{font-size:8.5px;fill:var(--ink2);font-family:'Outfit';font-weight:600}
 
   /* ===== R3 / R4 — cabeçalho de coluna ===== */
-  .qhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6cqh;flex-shrink:0;gap:.6cqw}
+  .qhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9cqh;
+    flex-shrink:0;flex-grow:0;gap:.6cqw;min-height:0}
   .qhead h3{font-family:'Red Hat Display';font-weight:700;color:#fff;font-size:clamp(12.1px,4.441cqh,29.9px)}
   .live{display:inline-flex;align-items:center;gap:.4em;font-size:clamp(8.2px,2.841cqh,18.3px);letter-spacing:.14em;
     color:var(--lilac);font-weight:600}
@@ -126,9 +145,18 @@
     animation:pulse 1.6s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
-  /* leaderboard (R3 — Revenda/Corporativo) */
-  .qcell{gap:1.15cqh}
-  .lb{display:flex;flex-direction:column;justify-content:center;gap:1.05cqh;flex:1;min-height:0}
+  /* leaderboard (R3 — Revenda/Corporativo/Digital)
+     CORREÇÃO: a lista usava justify-content:center com flex:1. Quando o número
+     de vendedores passava da altura útil, o flexbox estourava PARA OS DOIS
+     LADOS e a primeira linha subia por cima do cabeçalho "Corporativo".
+     Agora ancora no topo e recorta o excesso (overflow:hidden), e o front
+     limita a lista em LIMITE_RANK nomes — o compacto é quem mostra todos. */
+  .qcell{gap:0}
+  .lb{display:flex;flex-direction:column;justify-content:flex-start;gap:.85cqh;
+    flex:1 1 auto;min-height:0;overflow:hidden}
+  /* listas curtas (Revenda/Digital têm 4 linhas) se distribuem pela altura do
+     quadrante em vez de deixarem metade da TV vazia embaixo */
+  .lb.few{justify-content:space-evenly}
   .lb-row{display:flex;align-items:center;gap:.9cqw;flex-shrink:0}
   .lb-avatar{width:2.5em;height:2.5em;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
     font-family:'Red Hat Display';font-weight:700;font-size:clamp(9.3px,3.341cqh,21.4px);
@@ -136,15 +164,36 @@
   .lb-row.p1 .lb-avatar{background:linear-gradient(135deg,#C9A7FF,#6F00FF);color:#fff;border:none;
     box-shadow:0 0 14px rgba(111,0,255,.55)}
   .lb-body{flex:1;min-width:0}
-  .lb-toprow{display:flex;align-items:baseline;justify-content:space-between;gap:.6em}
+  .lb-toprow{display:flex;align-items:baseline;justify-content:space-between;gap:.6em;line-height:1.1}
   .lb-name{font-size:clamp(10.6px,3.741cqh,24.5px);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    font-weight:400}
+    font-weight:400;line-height:1.1}
   .lb-row.p1 .lb-name{font-weight:600}
   .lb-val{font-family:'Red Hat Display';font-weight:700;font-size:clamp(10.9px,3.841cqh,25.2px);color:var(--ink2);
-    white-space:nowrap}
+    white-space:nowrap;line-height:1.1}
   .lb-row.p1 .lb-val{color:#fff}
-  .lb-bar{height:4px;background:#141419;border-radius:4px;overflow:hidden;margin-top:.4em}
+  .lb-bar{height:4px;background:#141419;border-radius:4px;overflow:hidden;flex:1;min-width:0}
   .lb-bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#6F00FF,#C9A7FF)}
+
+  /* linha 2 do vendedor: barra + "/ meta" + % atingido.
+     A barra agora mede VENDIDO ÷ META (não mais vendido ÷ líder), então a
+     barra cheia e o "100%" significam a mesma coisa. */
+  .lb-botrow{display:flex;align-items:center;gap:.55em;margin-top:.3em;line-height:1}
+  .lb-meta{font-size:clamp(8.2px,2.741cqh,17.6px);color:var(--muted2);white-space:nowrap;flex:none;line-height:1}
+  .lb-pct{font-family:'Red Hat Display';font-weight:700;font-size:clamp(8.6px,2.941cqh,19.0px);
+    color:var(--lilac);white-space:nowrap;flex:none;min-width:2.6em;text-align:right;line-height:1}
+
+  /* quem já bateu a meta: selo ✓, barra e % em verde */
+  .lb-ok{display:inline-flex;align-items:center;justify-content:center;flex:none;
+    width:1.5em;height:1.5em;border-radius:50%;background:rgba(67,224,138,.16);
+    border:1px solid rgba(67,224,138,.55);color:var(--green);
+    font-size:clamp(6.6px,2.191cqh,14.1px);font-weight:700;line-height:1;margin-left:.3em;
+    vertical-align:baseline}
+  .lb-row.ok .lb-bar i{background:linear-gradient(90deg,#1E9E5C,var(--green))}
+  .lb-row.ok .lb-pct{color:var(--green)}
+  .lb-row.ok .lb-avatar{border-color:rgba(67,224,138,.55);color:var(--green);
+    background:rgba(67,224,138,.12);box-shadow:none}
+  .lb-row.p1.ok .lb-avatar{background:linear-gradient(135deg,#7CF0B6,#1E9E5C);color:#04140C;
+    box-shadow:0 0 14px rgba(67,224,138,.45)}
 
   /* clientes novos — versão compacta no canto do cabeçalho (R3 — Revenda/Corporativo).
      Movida do rodapé pro qhead pra dar prioridade de espaço à lista completa
@@ -159,6 +208,14 @@
   .cli-mini-info .v span{color:var(--muted);font-weight:400;font-size:.72em}
   .cli-mini-info .l{font-size:clamp(7.8px,2.241cqh,12.5px);color:var(--muted);letter-spacing:.09em;text-transform:uppercase;margin-top:.1em}
 
+  /* resumo do canal no cabeçalho do ranking: quantos já bateram a meta */
+  .rank-sum{display:flex;align-items:baseline;gap:.4em;flex:none;white-space:nowrap}
+  .rank-sum .v{font-family:'Red Hat Display';font-weight:800;color:var(--green);
+    font-size:clamp(11.5px,3.641cqh,23.0px);line-height:1}
+  .rank-sum .v.off{color:var(--muted2)}
+  .rank-sum .l{font-size:clamp(7.8px,2.441cqh,14.5px);color:var(--muted);
+    letter-spacing:.1em;text-transform:uppercase}
+
   /* R3 Digital — regiões + sessões/conversão */
   .rg-list{display:flex;flex-direction:column;flex-shrink:1;min-height:0;overflow:hidden}
   .rg-item{display:flex;align-items:center;gap:.7em;padding:.5cqh 0;border-bottom:1px solid var(--line);
@@ -172,35 +229,44 @@
   .sess-stat .v{font-family:'Red Hat Display';font-weight:800;color:#fff;font-size:clamp(15.2px,5.141cqh,39.2px);letter-spacing:-.01em}
   .sess-stat .l{font-size:clamp(8.6px,2.841cqh,18.3px);letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:.3em}
 
-  /* R4 — produto & ticket (todos os canais) */
-  .prod-list{display:flex;flex-direction:column;flex-shrink:1;min-height:0;overflow:hidden}
-  .prod-item{display:flex;align-items:center;gap:.7em;padding:.5cqh 0;border-bottom:1px solid var(--line);
-    font-size:clamp(10.2px,3.541cqh,22.9px)}
-  .prod-item:last-child{border-bottom:none}
-  .prod-item .n{width:1.2em;flex:none;color:var(--muted2);font-family:'Red Hat Display';font-weight:700;font-size:.85em}
-  .prod-item .t{flex:1;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .prod-item b{color:var(--lilac);font-family:'Red Hat Display';font-weight:700;white-space:nowrap}
-  .prod-stats{display:flex;gap:1.8cqw;padding-top:1.1cqh;border-top:2px dashed var(--line);flex-shrink:0}
-  .prod-stat{flex:1}
-  .prod-stat .v{font-family:'Red Hat Display';font-weight:800;color:#fff;font-size:clamp(15.2px,5.141cqh,39.2px);letter-spacing:-.01em}
-  .prod-stat .v .cur{font-size:.5em;color:var(--muted);font-weight:700;margin-right:.08em}
-  .prod-stat .l{font-size:clamp(8.6px,2.841cqh,18.3px);letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:.3em}
-  .prod-note{font-size:clamp(8.6px,2.841cqh,18.3px);color:var(--muted2);margin-top:.6cqh;flex-shrink:0}
-  .prod-note b{color:var(--muted);font-weight:500}
-
-  .src{font-size:clamp(7.8px,2.541cqh,16.7px);color:var(--muted2);margin-top:1cqh;display:flex;align-items:center;gap:.5em}
+  .src{font-size:clamp(7.8px,2.541cqh,16.7px);color:var(--muted2);margin-top:.9cqh;display:flex;align-items:center;gap:.5em;flex-shrink:0}
   .dotsrc{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--lilac);flex:none}
 
-  /* R4 — indicadores do canal (substitui o antigo "top produtos" do BigQuery) */
-  .chanind{display:flex;flex-direction:column;justify-content:center;gap:2.4cqh;flex:1;min-height:0}
-  .chanind .item{display:flex;flex-direction:column;gap:.35cqh}
-  .chanind .v{font-family:'Red Hat Display';font-weight:800;color:#fff;line-height:.98;
-    letter-spacing:-.01em;font-size:clamp(16.8px,7.241cqh,54.5px)}
-  .chanind .v .cur{font-size:.42em;font-weight:700;color:var(--muted);margin-right:.12em;vertical-align:.18em}
-  .chanind .v.accent{color:var(--lilac)}
-  .chanind .l{font-size:clamp(8.6px,2.841cqh,18.3px);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-  .chanind .sub{font-size:clamp(8.6px,2.541cqh,15.3px);color:var(--muted2);margin-top:.1cqh}
-  .chanind .sub b{color:var(--muted);font-weight:500}
+  /* ===== R4 — INDICADORES DO CANAL =====
+     Antes: 2 números soltos com metade do quadrante vazio.
+     Agora: grade 2×2 que ocupa toda a altura útil, com "falta por dia" junto
+     de "falta para bater a meta" e "média por dia" — e um 4º indicador que
+     fecha a leitura (dias restantes nos canais b2b, conversão do site no
+     Digital). Cada célula da grade cresce por igual (grid-auto-rows:1fr), o
+     que elimina o espaço morto que sobrava embaixo. */
+  .indgrid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;
+    gap:1.2cqh 2.6cqw;flex:1 1 auto;min-height:0}
+  .ind{display:flex;flex-direction:column;justify-content:center;min-width:0;
+    padding-left:.9cqw;border-left:2px solid rgba(111,0,255,.28)}
+  .ind .v{font-family:'Red Hat Display';font-weight:800;color:#fff;line-height:.98;
+    letter-spacing:-.01em;font-size:clamp(15.5px,9.6cqh,62px);white-space:nowrap}
+  .ind .v .cur{font-size:.44em;font-weight:700;color:var(--muted);margin-right:.1em;vertical-align:.18em}
+  .ind .v.accent{color:var(--lilac)}
+  .ind .v.green{color:var(--green)}
+  .ind .l{font-size:clamp(8.0px,2.741cqh,17.6px);letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);margin-top:.45em;line-height:1.15}
+  .ind .sub{font-size:clamp(7.6px,2.441cqh,15.3px);color:var(--muted2);margin-top:.3em;line-height:1.2}
+  .ind .sub b{color:var(--muted);font-weight:500}
+  .ind .sub b.ok{color:var(--green)}
+  .ind.ok{border-left-color:rgba(67,224,138,.5)}
+
+  /* ===== Botão de tela cheia =====
+     Fica invisível na parede: só aparece quando alguém mexe o mouse e some
+     sozinho em 3s. Não entra no fluxo do grid (position:fixed). */
+  .fsbtn{position:fixed;top:14px;right:14px;z-index:80;
+    width:38px;height:38px;border-radius:9px;cursor:pointer;
+    background:rgba(20,16,32,.72);border:1px solid rgba(180,124,255,.35);
+    color:#C9A7FF;display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(6px);transition:opacity .3s ease,transform .15s ease;
+    opacity:0;pointer-events:none}
+  .fsbtn.show{opacity:1;pointer-events:auto}
+  .fsbtn:hover{transform:scale(1.06);border-color:rgba(180,124,255,.7);color:#fff}
+  .fsbtn svg{width:18px;height:18px;display:block}
 </style>
 
 <style>
@@ -246,6 +312,7 @@
     <div class="hero-ytd">
       <div class="eyebrow" data-f="proj.eyebrow"></div>
       <div class="val" data-f="proj.pct"></div>
+      <div class="projlab">Projetado<small>da meta do mês</small></div>
       <div class="sub">no ritmo atual, fecha o mês em <b data-f="proj.valor"></b> — meta é <span data-f="proj.meta"></span></div>
     </div>
   </div>
@@ -260,12 +327,19 @@
   <div class="cell qcell br bb" data-rank="1"></div>
   <div class="cell qcell bb"    data-rank="2"></div>
 
-  <!-- LINHA 4 — INDICADORES DO CANAL (falta p/ meta, média/dia, conversão) -->
+  <!-- LINHA 4 — INDICADORES DO CANAL (falta p/ meta, falta por dia, média/dia, conversão) -->
   <div class="cell qcell br" data-canalind="0"></div>
   <div class="cell qcell br" data-canalind="1"></div>
   <div class="cell qcell"    data-canalind="2"></div>
 
 </div>
+
+<button class="fsbtn" id="fsbtn" title="Tela cheia (F)" aria-label="Tela cheia">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
+       stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>
+  </svg>
+</button>
 
 <div class="load-msg" id="loadMsg">carregando dados</div>
 <div class="err-msg" id="errMsg"></div>
@@ -282,6 +356,12 @@
 
   var URL_DADOS = '/.netlify/functions/painel-data';
 
+  /* Quantos vendedores cabem no quadrante da linha 3 sem estourar a altura
+     útil da TV. O Corporativo tem 8 nomes na planilha; com a nova linha de
+     "vendido / meta · %" só cabem 7 sem encavalar no cabeçalho — o 8º sai
+     daqui (a lista COMPLETA fica no painel compacto). */
+  var LIMITE_RANK = 7;
+
   /* ---------- Escala do canvas (idêntico ao original) ----------
      Canvas fixo 1920x1080 escalado com "cover". NÃO trocar por
      contain/letterbox — já causou faixas cinza na parede real. */
@@ -292,6 +372,31 @@
   }
   fit();
   window.addEventListener('resize', fit);
+
+  /* ---------- Botão de tela cheia ----------
+     Aparece no movimento do mouse e some em 3s, pra não poluir a parede. */
+  (function(){
+    var btn = document.getElementById('fsbtn'), t;
+    function mostrar(){
+      btn.classList.add('show');
+      clearTimeout(t);
+      t = setTimeout(function(){ btn.classList.remove('show'); }, 3000);
+    }
+    document.addEventListener('mousemove', mostrar);
+    document.addEventListener('touchstart', mostrar, {passive:true});
+    btn.addEventListener('click', function(){
+      var el = document.documentElement;
+      if (document.fullscreenElement || document.webkitFullscreenElement){
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else {
+        (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+      }
+      mostrar();
+    });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'f' || e.key === 'F') btn.click();
+    });
+  })();
 
   /* ---------- Formatação pt-BR ---------- */
   function miles(v){
@@ -323,6 +428,15 @@
   function inic(nome){
     var p = String(nome||'').trim().split(/\s+/);
     return (p.length >= 2 ? (p[0][0]+p[1][0]) : String(nome||'').slice(0,2)).toUpperCase();
+  }
+  /* pct do vendedor: usa o que a função mandou; se faltar, calcula na mão */
+  function pctVend(p){
+    if (p.pct_meta != null) return p.pct_meta;
+    return (p.meta > 0) ? (p.valor||0)/p.meta*100 : 0;
+  }
+  function bateu(p){
+    if (p.bateu_meta != null) return !!p.bateu_meta;
+    return p.meta > 0 && (p.valor||0) >= p.meta;
   }
 
   /* ---------- Gráfico de evolução (geometria idêntica ao original) ----------
@@ -410,12 +524,13 @@
       '</div>';
   }
 
-  /* ---------- LINHA 3 · leaderboard de vendedores ---------- */
+  /* ---------- LINHA 3 · leaderboard de vendedores ----------
+     Agora cada linha mostra "vendido / meta · %" além do valor absoluto,
+     e quem bateu a meta ganha selo ✓ + barra/% em verde. */
   function renderRank(el, c, idx, mes){
     if (!el || !c) return;
-    var vend = c.vendedores || [];
-    var topo = 0;
-    vend.forEach(function(p){ topo = Math.max(topo, p.valor||0); });
+    var todos = c.vendedores || [];
+    var vend  = todos.slice(0, LIMITE_RANK);
 
     var cn = c.clientes_novos;
     var mini = '';
@@ -430,17 +545,30 @@
           '<div class="l">novos</div>' +
         '</div>' +
       '</div>';
+    } else {
+      /* sem clientes novos na planilha: o canto do cabeçalho mostra
+         quantos do canal já bateram a meta do mês */
+      var nOk = todos.filter(bateu).length;
+      mini = '<div class="rank-sum"><span class="v'+(nOk?'':' off')+'">'+
+        nOk+'/'+todos.length+'</span><span class="l">na meta</span></div>';
     }
 
     var rows = '';
     vend.forEach(function(p, i){
-      var w = topo ? cap((p.valor||0)/topo*100) : 0;
-      rows += '<div class="lb-row'+(i===0 && (p.valor||0)>0 ? ' p1' : '')+'">' +
+      var pc = pctVend(p);
+      var ok = bateu(p);
+      var w  = cap(pc);
+      rows += '<div class="lb-row'+(i===0 && (p.valor||0)>0 ? ' p1' : '')+(ok?' ok':'')+'">' +
         '<div class="lb-avatar">'+esc(inic(p.nome))+'</div>' +
         '<div class="lb-body">' +
-          '<div class="lb-toprow"><span class="lb-name">'+esc(p.nome)+'</span>' +
+          '<div class="lb-toprow"><span class="lb-name">'+esc(p.nome)+
+            (ok ? '<span class="lb-ok">&#10003;</span>' : '')+'</span>' +
           '<span class="lb-val">'+brl(p.valor)+'</span></div>' +
-          '<div class="lb-bar"><i style="width:'+Math.round(w)+'%"></i></div>' +
+          '<div class="lb-botrow">' +
+            '<div class="lb-bar"><i style="width:'+w.toFixed(1)+'%"></i></div>' +
+            '<span class="lb-meta">/ '+brlAbrev(p.meta)+'</span>' +
+            '<span class="lb-pct">'+pct0(pc)+'</span>' +
+          '</div>' +
         '</div>' +
       '</div>';
     });
@@ -450,40 +578,72 @@
         '<span class="eyebrow" style="font-size:clamp(8.6px,2.841cqh,18.3px)">' +
           esc(c.nome)+' · '+esc(mes)+'</span>' + mini +
       '</div>' +
-      '<div class="lb">'+rows+'</div>';
+      '<div class="lb'+(vend.length <= 5 ? ' few' : '')+'">'+rows+'</div>';
   }
 
   /* ---------- LINHA 4 · indicadores do canal ----------
-     Revenda / Corporativo: falta para bater a meta + média de vendas/dia.
-     Digital: conversão do site (atual vs meta) + falta para bater a meta.
+     Grade 2×2 que preenche o quadrante inteiro:
+       1. Falta para bater a meta       2. Falta por dia (+ se o ritmo cobre)
+       3. Média de vendas por dia       4. Dias restantes  |  Conversão do site
      Tudo calculado a partir da planilha — sem BigQuery. */
   function renderCanalInd(el, c, idx, conversao, fonteTxt){
     if (!el || !c) return;
     var ehDigital = idx === 2;
-    var itens;
+    var dias = c.dias || {};
+    var faltaDia = c.falta_dia != null ? c.falta_dia
+                 : (dias.faltantes > 0 ? Math.max(0,c.falta||0)/dias.faltantes : 0);
+    var bateuMeta = (c.falta || 0) <= 0;
+    var cobre = faltaDia > 0 ? (c.media_dia||0)/faltaDia*100 : 999;
+    var ritmoOk = cobre >= 100;
 
+    /* 1 — falta para bater a meta */
+    var t1 = '<div class="ind'+(bateuMeta?' ok':'')+'">' +
+      (bateuMeta
+        ? '<div class="v green">Meta batida</div>'
+        : '<div class="v"><span class="cur">R$</span>'+miles(c.falta)+'</div>') +
+      '<div class="l">Falta para bater a meta</div>' +
+      '<div class="sub">de <b>'+brlAbrev(c.meta)+'</b> · '+pct0(c.pct_meta)+' atingido</div></div>';
+
+    /* 2 — falta por dia (o pedido novo) */
+    var t2 = '<div class="ind'+(ritmoOk?' ok':'')+'">' +
+      (bateuMeta
+        ? '<div class="v green">—</div>'
+        : '<div class="v accent"><span class="cur">R$</span>'+miles(faltaDia)+'</div>') +
+      '<div class="l">Falta por dia</div>' +
+      '<div class="sub">' + (bateuMeta
+        ? 'nada a perseguir no mês'
+        : 'em <b>'+(dias.faltantes||0)+'</b> dias restantes · ritmo cobre ' +
+          '<b class="'+(ritmoOk?'ok':'')+'">'+pct0(Math.min(cobre,999))+'</b>') +
+      '</div></div>';
+
+    /* 3 — média de vendas por dia */
+    var t3 = '<div class="ind">' +
+      '<div class="v"><span class="cur">R$</span>'+miles(c.media_dia)+'</div>' +
+      '<div class="l">Média de vendas · dia</div>' +
+      '<div class="sub">em <b>'+(dias.trabalhados||0)+'</b> dias trabalhados</div></div>';
+
+    /* 4 — fecha a leitura: conversão no Digital, calendário nos demais */
+    var t4;
     if (ehDigital) {
       var cv = (conversao && conversao.b2c) || {};
-      itens =
-        '<div class="item"><div class="v accent">'+pct2(cv.atual)+'</div>' +
-          '<div class="l">Conversão do site</div>' +
-          '<div class="sub">meta: <b>'+pct2(cv.meta)+'</b></div></div>' +
-        '<div class="item"><div class="v"><span class="cur">R$</span>'+miles(c.falta)+'</div>' +
-          '<div class="l">Falta para bater a meta</div></div>';
+      var convOk = (cv.atual||0) >= (cv.meta||0);
+      t4 = '<div class="ind'+(convOk?' ok':'')+'">' +
+        '<div class="v '+(convOk?'green':'accent')+'">'+pct2(cv.atual)+'</div>' +
+        '<div class="l">Conversão do site</div>' +
+        '<div class="sub">meta: <b>'+pct2(cv.meta)+'</b></div></div>';
     } else {
-      itens =
-        '<div class="item"><div class="v"><span class="cur">R$</span>'+miles(c.falta)+'</div>' +
-          '<div class="l">Falta para bater a meta</div></div>' +
-        '<div class="item"><div class="v accent"><span class="cur">R$</span>'+miles(c.media_dia)+'</div>' +
-          '<div class="l">Média de vendas · dia</div></div>';
+      t4 = '<div class="ind">' +
+        '<div class="v">'+(dias.faltantes||0)+'</div>' +
+        '<div class="l">Dias úteis restantes</div>' +
+        '<div class="sub">de <b>'+(dias.total||0)+'</b> no mês</div></div>';
     }
 
     var nota = fonteTxt ? '<div class="src"><span class="dotsrc"></span>'+esc(fonteTxt)+'</div>' : '';
 
     el.innerHTML =
       '<div class="qhead"><span class="eyebrow" style="font-size:clamp(8.6px,2.841cqh,18.3px)">' +
-        'Ritmo do canal</span></div>' +
-      '<div class="chanind">'+itens+'</div>' + nota;
+        'Ritmo do canal · '+esc(c.nome)+'</span></div>' +
+      '<div class="indgrid">'+t1+t2+t3+t4+'</div>' + nota;
   }
 
   /* ---------- Preenche os campos simples (data-f) ---------- */
@@ -505,7 +665,7 @@
     var barEl = document.querySelector('[data-f="hero.bar"]');
     if (barEl) barEl.style.width = cap(h.pct_atingido) + '%';
 
-    setF('proj.eyebrow', 'Projetado · ' + mes);
+    setF('proj.eyebrow', 'Projeção · ' + mes);
     setF('proj.pct', pct0(h.projecao_pct));
     setF('proj.valor', brl(h.projecao));
     setF('proj.meta', brl(h.meta));
