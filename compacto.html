@@ -119,10 +119,13 @@
 
   /* marca — logo oficial em PNG + frase como "linha 2" da mesma marca, não
      uma legenda solta: mesmo halo pulsando (aplicado no .brand inteiro, não
-     em cada peça separada) e um único raio de brilho que varre a logo
-     primeiro e depois desce e varre a frase, letra por letra, no mesmo
-     ciclo de 6s. */
-  .brand{ text-align:center; padding:0 54px;
+     em cada peça separada) e o MESMO raio de brilho passando pela logo e
+     pela frase ao mesmo tempo (não mais sequencial). display:flex column
+     aqui é o que garante a frase ficar EMBAIXO da logo, e não do lado —
+     sem isso os dois, sendo inline-block, ficavam lado a lado quando
+     cabiam na mesma linha. */
+  .brand{ display:flex; flex-direction:column; align-items:center;
+    text-align:center; padding:0 54px;
     animation: logoPulse 3.4s ease-in-out infinite; }
   .brand .logo-wrap{ position:relative; display:inline-block; }
   .brand .logo-wrap .logo-img{ display:block; height:42px; width:auto; }
@@ -137,18 +140,19 @@
     mask-repeat:no-repeat; mask-position:center;
     background-size:280% 100%; background-position:150% 0;
     filter: blur(1.4px) saturate(1.35);
-    animation: logoShineSeq 12s ease-in-out infinite;
+    animation: holoShine 12s ease-in-out infinite;
     pointer-events:none;
   }
   @keyframes logoPulse{
     0%, 100% { filter: drop-shadow(0 0 5px rgba(180,124,255,.20)) drop-shadow(0 0 0px rgba(111,0,255,0)); transform:scale(1); }
     50%      { filter: drop-shadow(0 0 20px rgba(180,124,255,.7)) drop-shadow(0 0 34px rgba(111,0,255,.35)); transform:scale(1.008); }
   }
-  /* logo varre nos primeiros 40% do ciclo, depois fica "apagada" até o loop reiniciar */
-  @keyframes logoShineSeq{
+  /* sweep lento (~35% do ciclo de 12s = ~4,2s), compartilhado pela logo E
+     pela frase — ambas usam esta mesma animação, então passam juntas */
+  @keyframes holoShine{
     0%   { background-position:150% 0; }
-    28%  { background-position:150% 0; }
-    58%  { background-position:-50% 0; }
+    30%  { background-position:150% 0; }
+    65%  { background-position:-50% 0; }
     100% { background-position:-50% 0; }
   }
   /* mesma família/caixa-alta/tracking dos rótulos do painel (.eyebrow),
@@ -165,16 +169,8 @@
       rgba(180,124,255,.95) 68%, transparent 82%);
     background-size:280% 100%; background-position:150% 0;
     filter: blur(.6px) saturate(1.35);
-    animation: textShineSeq 12s ease-in-out infinite;
+    animation: holoShine 12s ease-in-out infinite;
     pointer-events:none;
-  }
-  /* a frase varre de 45% a 75% do MESMO ciclo — começa só depois que a
-     logo termina, dando a sensação de um raio só descendo de um pro outro */
-  @keyframes textShineSeq{
-    0%   { background-position:150% 0; }
-    66%  { background-position:150% 0; }
-    92%  { background-position:-50% 0; }
-    100% { background-position:-50% 0; }
   }
 
   .proj{ text-align:right; }
