@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Elements · Painel Comercial · TV única</title>
+<title>Elements · Painel Comercial · Fechamento por mês</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@700;800&family=Outfit:wght@300;400;500;600&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
@@ -282,6 +282,32 @@
     z-index:50; display:none; line-height:1.55 }
   .stamp{ position:fixed; bottom:8px; right:14px; font-size:11px;
     color:#3d3d47; z-index:50; letter-spacing:.05em }
+
+  /* ============ Seletor de mês (exclusivo deste painel) ============
+     Mesmo comportamento do botão de tela cheia: some sozinho, aparece no
+     mouse/toque, e some de novo depois de 3s — não fica cobrindo o canto
+     do painel o tempo todo. */
+  .monthbar{ position:fixed; top:14px; left:14px; z-index:80;
+    display:flex; align-items:center; gap:10px;
+    background:rgba(20,16,32,.78); border:1px solid rgba(180,124,255,.35);
+    border-radius:9px; padding:7px 12px; backdrop-filter:blur(6px);
+    font-family:'Outfit',sans-serif;
+    opacity:0; pointer-events:none; transition:opacity .3s ease; }
+  .monthbar.show{ opacity:1; pointer-events:auto; }
+  .monthbar label{ font-size:11px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.08em; white-space:nowrap; }
+  .monthbar select{ appearance:none; -webkit-appearance:none; background:transparent;
+    border:none; outline:none; color:#fff; font:inherit; font-size:13px;
+    font-weight:600; cursor:pointer; padding:2px 18px 2px 2px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9A7FF' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat; background-position:right center; background-size:13px; }
+  .monthbar select option{ background:#14101f; color:#fff; }
+  .modobadge{ font-size:10px; font-weight:700; letter-spacing:.08em;
+    padding:3px 8px; border-radius:5px; text-transform:uppercase; }
+  .modobadge.live{ background:rgba(67,224,138,.15); color:var(--green);
+    border:1px solid rgba(67,224,138,.4); }
+  .modobadge.hist{ background:rgba(180,124,255,.15); color:var(--lilac2);
+    border:1px solid rgba(180,124,255,.4); }
 </style>
 </head>
 <body>
@@ -322,6 +348,12 @@
 
 </div>
 
+<div class="monthbar" id="monthbar">
+  <label for="mesSel">Mês</label>
+  <select id="mesSel"></select>
+  <span class="modobadge" id="modobadge">—</span>
+</div>
+
 <button class="fsbtn" id="fsbtn" title="Tela cheia (F)" aria-label="Tela cheia">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
        stroke-linecap="round" stroke-linejoin="round">
@@ -338,6 +370,72 @@
   var URL_DADOS = '/.netlify/functions/painel-data';
   var wall = document.getElementById('wall');
 
+  /* ---------- Seletor de mês ----------
+     Nomes de aba iguais aos de ABAS_POR_MES em painel-data.js — têm que
+     casar exatamente, é o valor mandado em ?mes=. "" (Mês vigente) não manda
+     o parâmetro: quem decide o mês nesse caso é o próprio backend (relógio
+     de SP), igual index.html e compacto.html fazem hoje. */
+  var MESES = [
+    { aba:'JAN',      label:'Janeiro'   },
+    { aba:'FEV',      label:'Fevereiro' },
+    { aba:'MAR',      label:'Março'     },
+    { aba:'ABRIL',    label:'Abril'     },
+    { aba:'MAIO',     label:'Maio'      },
+    { aba:'JUNHO',    label:'Junho'     },
+    { aba:'JULHO',    label:'Julho'     },
+    { aba:'AGOSTO',   label:'Agosto'    },
+    { aba:'SETEMBRO', label:'Setembro'  },
+    { aba:'OUTUBRO',  label:'Outubro'   },
+    { aba:'NOVEMBRO', label:'Novembro'  },
+    { aba:'DEZEMBRO', label:'Dezembro'  }
+  ];
+
+  function mesAtualBR(){
+    var f = new Intl.DateTimeFormat('en-US', { timeZone:'America/Sao_Paulo', month:'numeric' });
+    return parseInt(f.format(new Date()), 10) - 1;   // 0 = janeiro, igual ao backend
+  }
+
+  function mesDaURL(){
+    var p = new URLSearchParams(location.search);
+    var m = (p.get('mes') || '').toUpperCase();
+    return MESES.some(function(x){ return x.aba === m; }) ? m : '';
+  }
+
+  // '' = "mês vigente" (sem ?mes= na chamada). Qualquer outro valor = aba fixa.
+  var mesSelecionado = mesDaURL();
+
+  function urlComMes(mes, extra){
+    var url = new URL(location.href);
+    if (mes) url.searchParams.set('mes', mes); else url.searchParams.delete('mes');
+    if (extra) Object.keys(extra).forEach(function(k){ url.searchParams.set(k, extra[k]); });
+    return url;
+  }
+
+  function montarSeletor(){
+    var sel = document.getElementById('mesSel');
+    var h = '<option value="">Mês vigente</option>';
+    MESES.forEach(function(m){ h += '<option value="'+m.aba+'">'+m.label+'</option>'; });
+    sel.innerHTML = h;
+    sel.value = mesSelecionado;
+    sel.addEventListener('change', function(){
+      mesSelecionado = sel.value;
+      history.replaceState(null, '', urlComMes(mesSelecionado).pathname + urlComMes(mesSelecionado).search);
+      atualizarBadge();
+      carregar();
+    });
+  }
+
+  function atualizarBadge(){
+    var atualAba = MESES[mesAtualBR()].aba;
+    var alvo = mesSelecionado || atualAba;
+    var b = document.getElementById('modobadge');
+    if (alvo === atualAba) { b.textContent = 'Ao vivo';    b.className = 'modobadge live'; }
+    else                    { b.textContent = 'Histórico'; b.className = 'modobadge hist'; }
+  }
+
+  montarSeletor();
+  atualizarBadge();
+
   /* Canvas fixo 1920×1080 com escala "contain": nunca corta.
      (O painel 3×4 usa "cover" porque lá a parede é exatamente 16:9; aqui a
      janela do navegador tem a barra de abas comendo altura e o cover cortava
@@ -349,13 +447,23 @@
   fit();
   window.addEventListener('resize', fit);
 
-  /* Botão de tela cheia — aparece no movimento do mouse, some em 3s */
+  /* Botão de tela cheia + seletor de mês — aparecem no movimento do mouse
+     ou toque, somem em 3s. O seletor não some enquanto o <select> está
+     aberto/focado (senão o dropdown desaparece embaixo do dedo/mouse). */
   (function(){
-    var btn = document.getElementById('fsbtn'), t;
+    var btn = document.getElementById('fsbtn');
+    var mbar = document.getElementById('monthbar');
+    var sel = document.getElementById('mesSel');
+    var t, travado = false;
+
     function mostrar(){
       btn.classList.add('show');
+      mbar.classList.add('show');
       clearTimeout(t);
-      t = setTimeout(function(){ btn.classList.remove('show'); }, 3000);
+      t = setTimeout(function(){
+        btn.classList.remove('show');
+        if (!travado) mbar.classList.remove('show');
+      }, 3000);
     }
     document.addEventListener('mousemove', mostrar);
     document.addEventListener('touchstart', mostrar, {passive:true});
@@ -371,6 +479,11 @@
     document.addEventListener('keydown', function(e){
       if (e.key === 'f' || e.key === 'F') btn.click();
     });
+
+    sel.addEventListener('focus', function(){ travado = true; mostrar(); });
+    sel.addEventListener('blur',  function(){ travado = false; mostrar(); });
+
+    mostrar();   // pisca uma vez ao carregar, pra avisar que o controle existe
   })();
 
   /* ---------- Recarga MANUAL ----------
@@ -381,7 +494,8 @@
         · o rodapé mostra a versão que ESTA tela subiu (· v1a2b3c4)
      A rede de segurança de 6h no fim do arquivo continua existindo.      */
   function recarregar(){
-    location.replace(location.pathname + '?_r=' + Date.now());
+    var u = urlComMes(mesSelecionado, { _r: Date.now() });
+    location.replace(u.pathname + u.search);
   }
   document.addEventListener('keydown', function(e){
     if (e.key === 'r' || e.key === 'R') recarregar();
@@ -570,18 +684,34 @@
   }
 
   function carregar(){
-    fetch(URL_DADOS + '?_=' + Date.now(), { cache:'no-store' })
-      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-      .then(function(d){ if(d.error) throw new Error(d.detail||d.error); render(d); })
+    var qs = '?_=' + Date.now();
+    if (mesSelecionado) qs += '&mes=' + encodeURIComponent(mesSelecionado);
+    fetch(URL_DADOS + qs, { cache:'no-store' })
+      /* Lê o corpo SEMPRE, ok ou não — painel-data.js manda {error,detail}
+         mesmo nos 500, e é isso que diz "mês sem aba" vs. "credencial
+         expirou" etc. Só cai pro texto genérico se nem isso vier. */
+      .then(function(r){
+        return r.json()
+          .catch(function(){ return null; })
+          .then(function(body){ return { ok: r.ok, status: r.status, body: body }; });
+      })
+      .then(function(res){
+        if (!res.body) throw new Error('HTTP ' + res.status + ' (sem corpo de resposta)');
+        if (!res.ok || res.body.error) {
+          throw new Error(res.body.detail || res.body.error || ('HTTP ' + res.status));
+        }
+        render(res.body);
+      })
       .catch(function(e){ falhar(e.message); });
   }
 
   carregar();
   setInterval(carregar, 60*1000);
 
-  /* Rede de segurança: recarrega com cache-busting */
+  /* Rede de segurança: recarrega com cache-busting, preservando o mês */
   setTimeout(function(){
-    location.replace(location.pathname + '?_r=' + Date.now());
+    var u = urlComMes(mesSelecionado, { _r: Date.now() });
+    location.replace(u.pathname + u.search);
   }, 6 * 60 * 60 * 1000);
 })();
 </script>
