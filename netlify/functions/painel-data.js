@@ -371,13 +371,21 @@ async function lerPlanilha(aba, mesIdx) {
 // ---------------------------------------------------------------------------
 //  HANDLER
 // ---------------------------------------------------------------------------
+// Mês pelo relógio de São Paulo. O servidor da Netlify roda em UTC, então
+// new Date().getMonth() já virava o mês seguinte às 21h daqui.
+function mesBR() {
+  const f = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo', month: 'numeric'
+  });
+  return parseInt(f.format(new Date()), 10) - 1;   // 0 = janeiro
+}
+
 exports.handler = async function (event) {
   const qs = (event && event.queryStringParameters) || {};
 
-  const aba = qs.mes || process.env.MES_ABA || ABAS_POR_MES[new Date().getMonth()];
+  const aba = qs.mes || process.env.MES_ABA || ABAS_POR_MES[mesBR()];
   const mesIdx = ABAS_POR_MES.indexOf(aba) >= 0
-    ? ABAS_POR_MES.indexOf(aba) : new Date().getMonth();
-
+    ? ABAS_POR_MES.indexOf(aba) : mesBR();
   let sp;
   try {
     sp = await lerPlanilha(aba, mesIdx);
@@ -411,4 +419,3 @@ function json(status, body) {
 }
 
 // Exportado só para teste local (não usado pela Netlify)
-exports._montar = montar;
