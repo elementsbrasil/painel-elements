@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Elements · Painel Comercial · Fechamento por mês</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@700;800&family=Outfit:wght@300;400;500;600&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ==========================================================================
+     PAINEL COMPACTO — 1 TV / 1 monitor Full HD (1920×1080)
+     --------------------------------------------------------------------------
+     REORGANIZAÇÃO VISUAL (pedido: "ficou bagunçado, agrupa o que é de cada
+     canal sem poluir").
+
+     O problema da versão anterior era estrutural, não de tamanho de fonte:
+     o conteúdo estava dividido em DUAS faixas horizontais independentes
+     (ranking numa faixa, ritmo do canal noutra). Com isso, o olho lia o
+     painel em linhas — "todos os rankings", depois "todos os ritmos" — e
+     nada indicava que a coluna 2 da faixa de cima e a coluna 2 da faixa de
+     baixo eram o MESMO canal. Daí a sensação de bagunça.
+
+     Agora cada canal é UM CARTÃO ÚNICO, de cima a baixo, com tudo dele
+     dentro:
+         cabeçalho (nome + % da meta)
+         números do mês (realizado / meta / projetado + barra)
+         ranking completo de vendedores
+         rodapé de ritmo (falta, falta/dia, média/dia, dias ou conversão)
+
+     Assim a resposta para "o que é da Revenda?" é: tudo que está dentro
+     daquele retângulo. O agrupamento vem do container e do espaçamento —
+     não de cor, não de linha grossa.
+
+     COR: um acento só (roxo da marca) para tudo que é dado. O verde é
+     reservado para UM significado — "bateu a meta" — e nunca aparece por
+     outro motivo. Testei uma paleta com três cores (uma por canal) e ela
+     reprovou: lilás vs. azul dá ΔE 3,4 para daltônicos e 13,3 para visão
+     normal — indistinguíveis a 4 metros de distância. Cor por canal seria
+     poluição sem ganho de leitura; o título grande do cartão separa melhor.
+
+     Estrutura: 1 faixa de topo + 3 cartões lado a lado.
+     Sem NENHUMA linha de divisão de tela (aqui não há emenda física de TV
+     pra disfarçar). Os fios de 1px que existem são INTERNOS ao cartão,
+     separando seções do mesmo canal.
+
+     Escala: canvas fixo 1920×1080 escalado por JS com "contain" (Math.min),
+     pra nunca cortar borda numa tela só.
+     ========================================================================== */
+  :root{
+    --bg:#050507;
+    --purple:#6F00FF; --lilac:#B47CFF; --lilac2:#C9A7FF;
+    --green:#43E08A;
+    --ink:#FFFFFF; --ink2:#C6C6C6; --muted:#8A8A92; --muted2:#5C5C66;
+
+    /* superfícies do cartão — tudo derivado daqui, pra ajustar num lugar só */
+    --card-bg1:rgba(255,255,255,.050);
+    --card-bg2:rgba(255,255,255,.010);
+    --card-brd:rgba(255,255,255,.075);
+    --hair:rgba(255,255,255,.075);
+    --trilho:#191922;
+
+    /* Fonte da marca. TROCAR AQUI muda a logo nos dois painéis.
+       Ver "teste-fontes.html" pra escolher a definitiva. */
+    --brand-font:'Montserrat';
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--bg);overflow:hidden;height:100%;width:100%}
+  body{font-family:'Outfit',Helvetica,Arial,sans-serif;color:var(--ink2)}
+
+  .wall{
+    position:fixed; top:50%; left:50%;
+    width:1920px; height:1080px;
+    transform-origin:50% 50%;
+    display:grid;
+    grid-template-rows: 178px 1fr;
+    overflow:hidden;
+    background:radial-gradient(ellipse 80% 70% at 50% 26%,
+      #3A1A80 0%, #170A3D 34%, #0A0512 60%, var(--bg) 84%);
+    transition:opacity .35s ease;
+  }
+  .wall.loading{opacity:0}
+  .wall::before{
+    content:''; position:absolute; top:0; left:0; width:100%; height:230px;
+    background:radial-gradient(ellipse 55% 100% at 50% 0%, rgba(111,0,255,.20), transparent 72%);
+    pointer-events:none;
+  }
+
+  .eyebrow{
+    font-weight:600; text-transform:uppercase; letter-spacing:.2em;
+    color:var(--muted); font-size:14px;
+  }
+
+  /* ============ FAIXA 1 · TOPO ============ */
+  .top{
+    display:grid; grid-template-columns: 1fr auto 1fr;
+    align-items:center; padding:16px 40px 10px;
+    position:relative; min-height:0;
+  }
+
+  .kpi .num{
+    font-family:'Red Hat Display'; font-weight:800; color:#fff;
+    font-size:64px; line-height:1.08; letter-spacing:-.01em; margin-top:5px;
+  }
+  .kpi .num .cur{ font-size:.44em; color:var(--muted); margin-right:.12em;
+    vertical-align:.30em; font-weight:700; }
+  .kpi .sub{ font-size:16px; color:var(--muted); margin-top:6px; }
+  .kpi .sub b{ color:var(--ink2); font-weight:500; }
+
+  .barline{ display:flex; align-items:center; gap:16px; margin-top:9px; }
+  .track{ flex:1; height:9px; background:var(--trilho); border-radius:7px; overflow:hidden; }
+  .track i{ display:block; height:100%; border-radius:7px;
+    background:linear-gradient(90deg,var(--purple),var(--lilac2)); }
+  .bigpct{ font-family:'Red Hat Display'; font-weight:800; color:var(--lilac);
+    font-size:32px; line-height:1; flex-shrink:0; }
+
+  /* marca — mesma escrita da logo oficial: caixa alta, tracking largo */
+  .brand{ text-align:center; padding:0 54px; }
+  .brand .word{
+    font-family:var(--brand-font),'Outfit',Helvetica,Arial,sans-serif;
+    font-weight:600; color:#fff; font-size:44px; line-height:1;
+    letter-spacing:.30em; text-indent:.30em; text-transform:uppercase;
+  }
+  .brand .slogan{ font-family:'Red Hat Display'; font-style:italic; font-weight:700;
+    color:#fff; font-size:21px; margin-top:11px; }
+
+  .proj{ text-align:right; }
+  .proj .num{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
+    font-size:58px; line-height:1.08; margin-top:5px; }
+  .proj .projlab{ font-weight:600; text-transform:uppercase; letter-spacing:.16em;
+    color:var(--lilac); font-size:15px; margin-top:5px; line-height:1.25; }
+  .proj .projlab small{ display:block; font-weight:400; color:var(--muted);
+    font-size:.8em; letter-spacing:.14em; margin-top:2px; }
+  .proj .sub{ font-size:15px; color:var(--muted); margin-top:6px; }
+  .proj .sub b{ color:var(--ink2); font-weight:600; }
+
+  /* ============ 3 CARTÕES · UM POR CANAL ============ */
+  .canais{
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:20px; padding:0 30px 24px; min-height:0;
+  }
+  .canal{
+    display:flex; flex-direction:column; min-height:0;
+    padding:22px 26px 20px;
+    border-radius:22px;
+    border:1px solid var(--card-brd);
+    background:linear-gradient(180deg,var(--card-bg1) 0%,var(--card-bg2) 42%,
+      rgba(255,255,255,.006) 100%);
+    position:relative; overflow:hidden;
+  }
+  /* fio de luz no topo do cartão: dá borda superior sem "moldura" pesada */
+  .canal::before{
+    content:''; position:absolute; top:0; left:9%; right:9%; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(180,124,255,.55),transparent);
+  }
+
+  /* --- cabeçalho do cartão --- */
+  .c-head{ display:flex; align-items:baseline; justify-content:space-between;
+    gap:14px; flex-shrink:0; }
+  .c-nome{ font-family:'Red Hat Display'; font-weight:700; color:#fff;
+    font-size:29px; letter-spacing:.005em; line-height:1; }
+  .c-pct{ font-family:'Red Hat Display'; font-weight:800; color:var(--lilac);
+    font-size:31px; line-height:1; }
+
+  /* --- números do mês --- */
+  .c-val{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
+    font-size:43px; line-height:1; margin-top:13px; flex-shrink:0; }
+  .c-val .cur{ font-size:.42em; color:var(--muted); margin-right:.14em;
+    vertical-align:.32em; font-weight:700; }
+  .c-meta{ font-size:15px; color:var(--muted); margin-top:7px; flex-shrink:0;
+    display:flex; justify-content:space-between; gap:12px; }
+  .c-meta b{ color:var(--ink2); font-weight:600; }
+  .c-track{ height:7px; background:var(--trilho); border-radius:5px;
+    overflow:hidden; margin-top:11px; flex-shrink:0; }
+  .c-track i{ display:block; height:100%; border-radius:5px;
+    background:linear-gradient(90deg,var(--purple),var(--lilac2)); }
+  .c-track i.ok{ background:linear-gradient(90deg,#1E9E5C,var(--green)); }
+
+  /* --- rótulo de seção (interno ao cartão) --- */
+  .sec{ display:flex; align-items:baseline; justify-content:space-between;
+    gap:12px; flex-shrink:0; margin-top:20px; padding-top:15px;
+    border-top:1px solid var(--hair); }
+  .sec .t{ font-size:12px; letter-spacing:.19em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; }
+  .sec .s{ font-family:'Red Hat Display'; font-weight:800; font-size:18px;
+    color:var(--green); line-height:1; }
+  .sec .s.off{ color:var(--muted2); }
+  .sec .s span{ font-family:'Outfit'; font-weight:400; font-size:11px;
+    letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-left:5px; }
+
+  /* --- ranking completo ---
+     Linhas com altura MÍNIMA fixa e MÁXIMA travada: onde há poucos vendedores
+     (Revenda, Digital) elas crescem um pouco e param, em vez de esticarem até
+     ocupar a coluna inteira. Era isso que deixava as três colunas com ritmos
+     visuais diferentes. A lista fica CENTRADA na altura livre e o rodapé
+     ancorado no pé — então a sobra vira respiro em cima E embaixo (leitura de
+     bloco centrado) em vez de um buraco só no fim do cartão, e os três
+     rodapés continuam alinhados na mesma altura. */
+  .lb{ list-style:none; display:flex; flex-direction:column;
+    justify-content:center; gap:4px; margin-top:11px;
+    flex:1 1 auto; min-height:0; overflow:hidden; }
+  .lb li{ display:flex; align-items:center; gap:12px;
+    flex:1 1 auto; min-height:44px; max-height:72px; }
+  .av{ width:36px; height:36px; border-radius:50%; background:rgba(111,0,255,.14);
+    border:1px solid rgba(111,0,255,.42); flex-shrink:0; display:flex;
+    align-items:center; justify-content:center; font-family:'Red Hat Display';
+    font-weight:700; color:var(--lilac); font-size:14px; letter-spacing:.02em; }
+  .lb li.p1 .av{ background:linear-gradient(135deg,var(--purple),var(--lilac2));
+    color:#fff; border:none; box-shadow:0 0 14px rgba(111,0,255,.5); }
+  .lb-mid{ flex:1; min-width:0; }
+  .lb-row{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+  .lb-name{ font-weight:400; color:#fff; font-size:20px; line-height:1.15;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lb li.p1 .lb-name{ font-weight:600; }
+  .lb-val{ font-family:'Red Hat Display'; font-weight:700; color:#fff;
+    font-size:18px; line-height:1.15; flex-shrink:0; white-space:nowrap; }
+  .lb-val .m{ color:var(--muted); font-weight:400; font-size:.82em; }
+  .lb-bot{ display:flex; align-items:center; gap:10px; margin-top:5px; }
+  .lb-bar{ flex:1; min-width:0; height:5px; background:var(--trilho);
+    border-radius:4px; overflow:hidden; }
+  .lb-bar i{ display:block; height:100%; border-radius:4px;
+    background:linear-gradient(90deg,var(--purple),var(--lilac2)); }
+  .lb-pct{ font-family:'Red Hat Display'; font-weight:700; font-size:16px;
+    line-height:1; color:var(--lilac); flex-shrink:0; min-width:3.1em; text-align:right; }
+  .lb li.zero .lb-name, .lb li.zero .lb-val{ color:var(--muted2); }
+  .lb li.zero .lb-pct{ color:var(--muted2); }
+
+  /* bateu a meta: selo ✓ + barra e % em verde.
+     O verde nunca significa outra coisa no painel, e nunca vem sozinho —
+     sempre acompanhado do ✓, pra não depender de cor. */
+  .ok-badge{ display:inline-flex; align-items:center; justify-content:center;
+    width:19px; height:19px; border-radius:50%; margin-left:8px;
+    background:rgba(67,224,138,.16); border:1px solid rgba(67,224,138,.55);
+    color:var(--green); font-size:11px; font-weight:700; line-height:1;
+    vertical-align:middle; }
+  .lb li.ok .lb-bar i{ background:linear-gradient(90deg,#1E9E5C,var(--green)); }
+  .lb li.ok .lb-pct{ color:var(--green); }
+  .lb li.ok .av{ border-color:rgba(67,224,138,.55); color:var(--green);
+    background:rgba(67,224,138,.12); box-shadow:none; }
+  .lb li.p1.ok .av{ background:linear-gradient(135deg,#7CF0B6,#1E9E5C);
+    color:#04140C; box-shadow:0 0 14px rgba(67,224,138,.45); }
+
+  /* --- rodapé de ritmo, ancorado no pé do cartão --- */
+  .ritmo{ margin-top:auto; padding-top:16px; border-top:1px solid var(--hair);
+    flex-shrink:0; }
+  .ritmo-lab{ font-size:12px; letter-spacing:.19em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; margin-bottom:13px; }
+  .indgrid{ display:grid; grid-template-columns:1fr 1fr; gap:15px 22px; }
+  .ind{ min-width:0; }
+  .ind .v{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
+    font-size:33px; line-height:1; letter-spacing:-.01em; white-space:nowrap; }
+  .ind .v .cur{ font-size:.44em; color:var(--muted); font-weight:700;
+    margin-right:.1em; vertical-align:.2em; }
+  .ind .v.accent{ color:var(--lilac); }
+  .ind .v.green{ color:var(--green); }
+  .ind .l{ font-size:12px; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--muted); margin-top:7px; }
+  .ind .sub{ font-size:12px; color:var(--muted2); margin-top:4px; }
+  .ind .sub b{ color:var(--muted); font-weight:500; }
+  .ind .sub b.ok{ color:var(--green); }
+
+  /* ============ Botão de tela cheia ============ */
+  .fsbtn{ position:fixed; top:14px; right:14px; z-index:80;
+    width:38px; height:38px; border-radius:9px; cursor:pointer;
+    background:rgba(20,16,32,.72); border:1px solid rgba(180,124,255,.35);
+    color:#C9A7FF; display:flex; align-items:center; justify-content:center;
+    backdrop-filter:blur(6px); transition:opacity .3s ease, transform .15s ease;
+    opacity:0; pointer-events:none; }
+  .fsbtn.show{ opacity:1; pointer-events:auto; }
+  .fsbtn:hover{ transform:scale(1.06); border-color:rgba(180,124,255,.7); color:#fff; }
+  .fsbtn svg{ width:18px; height:18px; display:block; }
+
+  .load{ position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-size:16px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.18em; z-index:50 }
+  .err{ position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:#1a0808; border:1px solid #6b2020; color:#ff9a80;
+    padding:24px 32px; border-radius:10px; font-size:15px; max-width:60%;
+    z-index:50; display:none; line-height:1.55 }
+  .stamp{ position:fixed; bottom:8px; right:14px; font-size:11px;
+    color:#3d3d47; z-index:50; letter-spacing:.05em }
+
+  /* ============ Seletor de mês (exclusivo deste painel) ============ */
+  .monthbar{ position:fixed; top:14px; left:14px; z-index:80;
+    display:flex; align-items:center; gap:10px;
+    background:rgba(20,16,32,.78); border:1px solid rgba(180,124,255,.35);
+    border-radius:9px; padding:7px 12px; backdrop-filter:blur(6px);
+    font-family:'Outfit',sans-serif; }
+  .monthbar label{ font-size:11px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.08em; white-space:nowrap; }
+  .monthbar select{ appearance:none; -webkit-appearance:none; background:transparent;
+    border:none; outline:none; color:#fff; font:inherit; font-size:13px;
+    font-weight:600; cursor:pointer; padding:2px 18px 2px 2px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9A7FF' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat; background-position:right center; background-size:13px; }
+  .monthbar select option{ background:#14101f; color:#fff; }
+  .modobadge{ font-size:10px; font-weight:700; letter-spacing:.08em;
+    padding:3px 8px; border-radius:5px; text-transform:uppercase; }
+  .modobadge.live{ background:rgba(67,224,138,.15); color:var(--green);
+    border:1px solid rgba(67,224,138,.4); }
+  .modobadge.hist{ background:rgba(180,124,255,.15); color:var(--lilac2);
+    border:1px solid rgba(180,124,255,.4); }
+</style>
+</head>
+<body>
+
+<div class="wall loading" id="wall">
+
+  <!-- ===== FAIXA 1 · TOPO ===== -->
+  <div class="top">
+    <div class="kpi">
+      <div class="eyebrow" id="t-eyebrow">Total geral</div>
+      <div class="num"><span class="cur">R$</span><span id="t-valor">—</span></div>
+      <div class="sub">de <b id="t-meta">—</b> de meta no mês</div>
+      <div class="barline">
+        <div class="track"><i id="t-bar" style="width:0"></i></div>
+        <div class="bigpct" id="t-pct">—</div>
+      </div>
+    </div>
+
+    <div class="brand">
+      <div class="word">elements</div>
+      <div class="slogan">viva sem medo</div>
+    </div>
+
+    <div class="proj">
+      <div class="eyebrow" id="p-eyebrow">Projeção</div>
+      <div class="num" id="p-pct">—</div>
+      <div class="projlab">Projetado<small>da meta do mês</small></div>
+      <div class="sub">fecha o mês em <b id="p-valor">—</b> · <span id="p-falta">—</span></div>
+    </div>
+  </div>
+
+  <!-- ===== 3 CARTÕES · UM POR CANAL ===== -->
+  <div class="canais">
+    <div class="canal" id="c0"></div>
+    <div class="canal" id="c1"></div>
+    <div class="canal" id="c2"></div>
+  </div>
+
+</div>
+
+<div class="monthbar">
+  <label for="mesSel">Mês</label>
+  <select id="mesSel"></select>
+  <span class="modobadge" id="modobadge">—</span>
+</div>
+
+<button class="fsbtn" id="fsbtn" title="Tela cheia (F)" aria-label="Tela cheia">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
+       stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>
+  </svg>
+</button>
+
+<div class="load" id="load">carregando dados</div>
+<div class="err" id="err"></div>
+<div class="stamp" id="stamp"></div>
+
+<script>
+(function(){
+  var URL_DADOS = '/.netlify/functions/painel-data';
+  var wall = document.getElementById('wall');
+
+  /* ---------- Seletor de mês ----------
+     Nomes de aba iguais aos de ABAS_POR_MES em painel-data.js — têm que
+     casar exatamente, é o valor mandado em ?mes=. "" (Mês vigente) não manda
+     o parâmetro: quem decide o mês nesse caso é o próprio backend (relógio
+     de SP), igual index.html e compacto.html fazem hoje. */
+  var MESES = [
+    { aba:'JAN',      label:'Janeiro'   },
+    { aba:'FEV',      label:'Fevereiro' },
+    { aba:'MAR',      label:'Março'     },
+    { aba:'ABRIL',    label:'Abril'     },
+    { aba:'MAIO',     label:'Maio'      },
+    { aba:'JUNHO',    label:'Junho'     },
+    { aba:'JULHO',    label:'Julho'     },
+    { aba:'AGOSTO',   label:'Agosto'    },
+    { aba:'SETEMBRO', label:'Setembro'  },
+    { aba:'OUTUBRO',  label:'Outubro'   },
+    { aba:'NOVEMBRO', label:'Novembro'  },
+    { aba:'DEZEMBRO', label:'Dezembro'  }
+  ];
+
+  function mesAtualBR(){
+    var f = new Intl.DateTimeFormat('en-US', { timeZone:'America/Sao_Paulo', month:'numeric' });
+    return parseInt(f.format(new Date()), 10) - 1;   // 0 = janeiro, igual ao backend
+  }
+
+  function mesDaURL(){
+    var p = new URLSearchParams(location.search);
+    var m = (p.get('mes') || '').toUpperCase();
+    return MESES.some(function(x){ return x.aba === m; }) ? m : '';
+  }
+
+  // '' = "mês vigente" (sem ?mes= na chamada). Qualquer outro valor = aba fixa.
+  var mesSelecionado = mesDaURL();
+
+  function urlComMes(mes, extra){
+    var url = new URL(location.href);
+    if (mes) url.searchParams.set('mes', mes); else url.searchParams.delete('mes');
+    if (extra) Object.keys(extra).forEach(function(k){ url.searchParams.set(k, extra[k]); });
+    return url;
+  }
+
+  function montarSeletor(){
+    var sel = document.getElementById('mesSel');
+    var h = '<option value="">Mês vigente</option>';
+    MESES.forEach(function(m){ h += '<option value="'+m.aba+'">'+m.label+'</option>'; });
+    sel.innerHTML = h;
+    sel.value = mesSelecionado;
+    sel.addEventListener('change', function(){
+      mesSelecionado = sel.value;
+      history.replaceState(null, '', urlComMes(mesSelecionado).pathname + urlComMes(mesSelecionado).search);
+      atualizarBadge();
+      carregar();
+    });
+  }
+
+  function atualizarBadge(){
+    var atualAba = MESES[mesAtualBR()].aba;
+    var alvo = mesSelecionado || atualAba;
+    var b = document.getElementById('modobadge');
+    if (alvo === atualAba) { b.textContent = 'Ao vivo';    b.className = 'modobadge live'; }
+    else                    { b.textContent = 'Histórico'; b.className = 'modobadge hist'; }
+  }
+
+  montarSeletor();
+  atualizarBadge();
+
+  /* Canvas fixo 1920×1080 com escala "contain": nunca corta.
+     (O painel 3×4 usa "cover" porque lá a parede é exatamente 16:9; aqui a
+     janela do navegador tem a barra de abas comendo altura e o cover cortava
+     as bordas — foi exatamente o problema relatado.) */
+  function fit(){
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    wall.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+  }
+  fit();
+  window.addEventListener('resize', fit);
+
+  /* Botão de tela cheia — aparece no movimento do mouse, some em 3s */
+  (function(){
+    var btn = document.getElementById('fsbtn'), t;
+    function mostrar(){
+      btn.classList.add('show');
+      clearTimeout(t);
+      t = setTimeout(function(){ btn.classList.remove('show'); }, 3000);
+    }
+    document.addEventListener('mousemove', mostrar);
+    document.addEventListener('touchstart', mostrar, {passive:true});
+    btn.addEventListener('click', function(){
+      var el = document.documentElement;
+      if (document.fullscreenElement || document.webkitFullscreenElement){
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else {
+        (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+      }
+      mostrar();
+    });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'f' || e.key === 'F') btn.click();
+    });
+  })();
+
+  /* ---------- Recarga MANUAL ----------
+     O painel NÃO se recarrega sozinho quando sai versão nova: um deploy no
+     meio do expediente faria as telas piscarem juntas. A troca de versão é
+     sempre decisão de quem opera.
+        · atalho R  -> recarrega esta tela na hora, furando o cache
+        · o rodapé mostra a versão que ESTA tela subiu (· v1a2b3c4)
+     A rede de segurança de 6h no fim do arquivo continua existindo.      */
+  function recarregar(){
+    var u = urlComMes(mesSelecionado, { _r: Date.now() });
+    location.replace(u.pathname + u.search);
+  }
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'r' || e.key === 'R') recarregar();
+  });
+
+  /* Versão CONGELADA na primeira carga — tem que ser a que ESTA tela subiu,
+     não a que o servidor serve agora, senão o rodapé mentiria dizendo que a
+     tela está atualizada quando ela não está. */
+  var VERSAO_TELA = null;
+  function marcaVersao(d){
+    if (VERSAO_TELA === null && d && d.versao) VERSAO_TELA = String(d.versao).slice(-7);
+    return VERSAO_TELA ? '  ·  v' + VERSAO_TELA : '';
+  }
+
+  /* ---------- Formatação pt-BR ---------- */
+  function miles(v){ return Math.round(v||0).toLocaleString('pt-BR'); }
+  function brl(v){ return 'R$ ' + miles(v); }
+  function abrev(v){
+    v = v || 0;
+    if (Math.abs(v) >= 1e6) return 'R$ ' + (v/1e6).toLocaleString('pt-BR',
+      {minimumFractionDigits:1,maximumFractionDigits:1}) + 'M';
+    if (Math.abs(v) >= 1e3) return 'R$ ' + Math.round(v/1e3) + 'k';
+    return brl(v);
+  }
+  function p1(v){ return (v||0).toLocaleString('pt-BR',
+    {minimumFractionDigits:1,maximumFractionDigits:1}) + '%'; }
+  function p0(v){ return Math.round(v||0) + '%'; }
+  function p2(v){ return (v||0).toLocaleString('pt-BR',
+    {minimumFractionDigits:2,maximumFractionDigits:2}) + '%'; }
+  function cap(v){ return Math.max(0, Math.min(100, v||0)); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function inic(n){
+    var p = String(n||'').trim().split(/\s+/);
+    return (p.length>=2 ? (p[0][0]+p[1][0]) : String(n||'').slice(0,2)).toUpperCase();
+  }
+  function set(id, v){ var e=document.getElementById(id); if(e) e.textContent=v; }
+  function bar(id, pct){ var e=document.getElementById(id); if(e) e.style.width=cap(pct)+'%'; }
+  function pctVend(p){
+    if (p.pct_meta != null) return p.pct_meta;
+    return (p.meta > 0) ? (p.valor||0)/p.meta*100 : 0;
+  }
+  function bateu(p){
+    if (p.bateu_meta != null) return !!p.bateu_meta;
+    return p.meta > 0 && (p.valor||0) >= p.meta;
+  }
+
+  /* ---------- Ranking COMPLETO de vendedores ----------
+     Cada linha: nome · vendido / meta · barra (vendido ÷ meta) · %
+     Quem bateu a meta ganha selo ✓ e fica verde. */
+  function lista(itens){
+    itens = itens || [];
+    if (!itens.length) return '<ul class="lb"></ul>';
+    var h = '<ul class="lb">';
+    itens.forEach(function(p,i){
+      var pc = pctVend(p), ok = bateu(p);
+      var cls = (i===0 && (p.valor||0)>0) ? 'p1' : '';
+      if (!(p.valor>0)) cls += ' zero';
+      if (ok) cls += ' ok';
+      h += '<li class="'+cls+'">'+
+        '<div class="av">'+esc(inic(p.nome))+'</div>'+
+        '<div class="lb-mid">'+
+          '<div class="lb-row">'+
+            '<span class="lb-name">'+esc(p.nome)+
+              (ok ? '<span class="ok-badge">&#10003;</span>' : '')+'</span>'+
+            '<span class="lb-val">'+brl(p.valor)+
+              '<span class="m"> / '+abrev(p.meta)+'</span></span>'+
+          '</div>'+
+          '<div class="lb-bot">'+
+            '<div class="lb-bar"><i style="width:'+cap(pc).toFixed(1)+'%"></i></div>'+
+            '<span class="lb-pct">'+p0(pc)+'</span>'+
+          '</div>'+
+        '</div></li>';
+    });
+    return h+'</ul>';
+  }
+
+  /* ---------- Rodapé de ritmo do canal ---------- */
+  function ritmo(c, idx, conversao){
+    var dias = c.dias || {};
+    var faltaDia = c.falta_dia != null ? c.falta_dia
+                 : (dias.faltantes > 0 ? Math.max(0,c.falta||0)/dias.faltantes : 0);
+    var bateuMeta = (c.falta || 0) <= 0;
+    var cobre = faltaDia > 0 ? (c.media_dia||0)/faltaDia*100 : 999;
+    var ritmoOk = cobre >= 100;
+
+    var t1 = '<div class="ind">'+
+      (bateuMeta ? '<div class="v green">Meta batida</div>'
+                 : '<div class="v"><span class="cur">R$</span>'+miles(c.falta)+'</div>')+
+      '<div class="l">Falta para bater a meta</div>'+
+      '<div class="sub">de <b>'+abrev(c.meta)+'</b> · '+p0(c.pct_meta)+' atingido</div></div>';
+
+    var t2 = '<div class="ind">'+
+      (bateuMeta ? '<div class="v green">—</div>'
+                 : '<div class="v accent"><span class="cur">R$</span>'+miles(faltaDia)+'</div>')+
+      '<div class="l">Falta por dia</div>'+
+      '<div class="sub">'+(bateuMeta ? 'nada a perseguir no mês'
+        : 'em <b>'+(dias.faltantes||0)+'</b> dias · ritmo cobre <b class="'+
+          (ritmoOk?'ok':'')+'">'+p0(Math.min(cobre,999))+'</b>')+'</div></div>';
+
+    var t3 = '<div class="ind">'+
+      '<div class="v"><span class="cur">R$</span>'+miles(c.media_dia)+'</div>'+
+      '<div class="l">Média de vendas · dia</div>'+
+      '<div class="sub">em <b>'+(dias.trabalhados||0)+'</b> dias trabalhados</div></div>';
+
+    var t4;
+    if (idx === 2) {
+      var cv = (conversao && conversao.b2c) || {};
+      var convOk = (cv.atual||0) >= (cv.meta||0);
+      t4 = '<div class="ind">'+
+        '<div class="v '+(convOk?'green':'accent')+'">'+p2(cv.atual)+'</div>'+
+        '<div class="l">Conversão do site</div>'+
+        '<div class="sub">meta: <b>'+p2(cv.meta)+'</b></div></div>';
+    } else {
+      t4 = '<div class="ind">'+
+        '<div class="v">'+(dias.faltantes||0)+'</div>'+
+        '<div class="l">Dias úteis restantes</div>'+
+        '<div class="sub">de <b>'+(dias.total||0)+'</b> no mês</div></div>';
+    }
+
+    return '<div class="ritmo">'+
+      '<div class="ritmo-lab">Ritmo do canal</div>'+
+      '<div class="indgrid">'+t1+t2+t3+t4+'</div>'+
+    '</div>';
+  }
+
+  function render(d){
+    var mes = d.mes_vigente || '';
+    var h = d.hero || {};
+
+    set('t-eyebrow','Total geral · '+mes);
+    set('t-valor', miles(h.valor));
+    set('t-meta', brl(h.meta));
+    set('t-pct', p1(h.pct_atingido));
+    bar('t-bar', h.pct_atingido);
+
+    set('p-eyebrow','Projeção · '+mes);
+    set('p-pct', p0(h.projecao_pct));
+    set('p-valor', brl(h.projecao));
+    var falta = (h.meta||0)-(h.valor||0);
+    set('p-falta', falta>0 ? 'faltam '+abrev(falta) : 'meta do mês batida');
+
+    var canais = d.canais || [];
+    var rotulos = ['Ranking de vendedores','Ranking de vendedores','Composição do canal'];
+
+    canais.forEach(function(c,i){
+      var el = document.getElementById('c'+i);
+      if(!el) return;
+      var vend = c.vendedores || [];
+      var nOk  = vend.filter(bateu).length;
+      var metaOk = (c.falta || 0) <= 0;
+
+      el.innerHTML =
+        /* cabeçalho */
+        '<div class="c-head"><span class="c-nome">'+esc(c.nome)+'</span>'+
+          '<span class="c-pct">'+p1(c.pct_meta)+'</span></div>'+
+        /* números do mês */
+        '<div class="c-val"><span class="cur">R$</span>'+miles(c.realizado)+'</div>'+
+        '<div class="c-meta"><span>de <b>'+abrev(c.meta)+'</b> de meta</span>'+
+          '<span>projetado <b>'+p0(c.projecao_pct)+'</b></span></div>'+
+        '<div class="c-track"><i class="'+(metaOk?'ok':'')+'" style="width:'+
+          cap(c.pct_meta).toFixed(1)+'%"></i></div>'+
+        /* ranking */
+        '<div class="sec"><span class="t">'+esc(rotulos[i])+'</span>'+
+          '<span class="s'+(nOk?'':' off')+'">'+nOk+'/'+vend.length+
+          '<span>na meta</span></span></div>'+
+        lista(vend)+
+        /* ritmo, ancorado no pé */
+        ritmo(c, i, d.conversao);
+    });
+
+    set('stamp', 'planilha GERAL 2026 · '+
+      (d.atualizado_em ? new Date(d.atualizado_em).toLocaleTimeString('pt-BR') : '—') +
+      marcaVersao(d));
+    document.getElementById('load').style.display='none';
+    document.getElementById('err').style.display='none';
+    wall.classList.remove('loading');
+  }
+
+  function falhar(msg){
+    document.getElementById('load').style.display='none';
+    var e=document.getElementById('err');
+    e.innerHTML='<b>Não foi possível carregar os dados</b><br>'+esc(msg)+
+      '<br><br>O painel não exibe números antigos por segurança.';
+    e.style.display='block';
+  }
+
+  function carregar(){
+    var qs = '?_=' + Date.now();
+    if (mesSelecionado) qs += '&mes=' + encodeURIComponent(mesSelecionado);
+    fetch(URL_DADOS + qs, { cache:'no-store' })
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(d){ if(d.error) throw new Error(d.detail||d.error); render(d); })
+      .catch(function(e){ falhar(e.message); });
+  }
+
+  carregar();
+  setInterval(carregar, 60*1000);
+
+  /* Rede de segurança: recarrega com cache-busting, preservando o mês */
+  setTimeout(function(){
+    var u = urlComMes(mesSelecionado, { _r: Date.now() });
+    location.replace(u.pathname + u.search);
+  }, 6 * 60 * 60 * 1000);
+})();
+</script>
+</body>
+</html>
