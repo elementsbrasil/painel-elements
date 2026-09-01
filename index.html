@@ -68,15 +68,41 @@
   /* ===== R1C2 — MARCA =====
      Palavra "elements." reduzida à metade do tamanho anterior (era ~60% do
      quadrante) e slogan escalado na mesma proporção pra manter a hierarquia
-     visual. "elements." e "viva sem medo" em branco; só o ponto final fica
-     roxo (com glow), como destaque de marca. */
+     visual. Marca agora é a logo oficial em PNG (troca a antiga "palavra"
+     em CSS), com slogan "Viva sem medo. Viva no flow." em branco abaixo. */
   .id-cell{align-items:center;justify-content:center;text-align:center;gap:1.6cqh}
   /* Logo oficial: caixa alta, tracking largo. O text-indent compensa o
      espaco que o letter-spacing joga DEPOIS da ultima letra — sem ele a
      palavra fica visivelmente descentralizada dentro do quadrante. */
-  .id-cell .word{font-family:var(--brand-font),'Outfit',Helvetica,Arial,sans-serif;
-    font-weight:600;font-size:clamp(30px,17.4cqh,72px);text-transform:uppercase;
-    color:#fff;letter-spacing:.30em;text-indent:.30em;line-height:1.15}
+  /* Logo oficial em PNG (troca a "palavra" por imagem), com glow pulsando
+     contínuo + brilho cintilante varrendo por cima a cada 6s. Altura em
+     unidades de container query pra escalar igual o texto fazia. */
+  .id-cell .logo-wrap{ position:relative; display:inline-block;
+    animation: logoPulse 3.4s ease-in-out infinite; }
+  .id-cell .logo-wrap .logo-img{ display:block;
+    height:clamp(26px,15.2cqh,63px); width:auto; }
+  .id-cell .logo-wrap::after{
+    content:''; position:absolute; top:0; left:0; width:100%; height:100%;
+    background:linear-gradient(100deg, transparent 30%, rgba(255,255,255,.95) 48%,
+      rgba(201,167,255,.95) 52%, transparent 70%);
+    -webkit-mask-image:url('elements-logo.png'); -webkit-mask-size:contain;
+    -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
+    mask-image:url('elements-logo.png'); mask-size:contain;
+    mask-repeat:no-repeat; mask-position:center;
+    background-size:300% 100%; background-position:150% 0;
+    animation: logoShine 6s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes logoPulse{
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(180,124,255,.22)) drop-shadow(0 0 0px rgba(111,0,255,0)); transform:scale(1); }
+    50%      { filter: drop-shadow(0 0 24px rgba(180,124,255,.8)) drop-shadow(0 0 42px rgba(111,0,255,.4)); transform:scale(1.012); }
+  }
+  @keyframes logoShine{
+    0%   { background-position:150% 0; }
+    55%  { background-position:150% 0; }
+    75%  { background-position:-50% 0; }
+    100% { background-position:-50% 0; }
+  }
   .id-cell .slogan{font-family:'Red Hat Display';font-style:italic;font-weight:700;
     font-size:clamp(22.5px,12.06cqh,50.5px);letter-spacing:.03em;color:#fff;
     text-transform:none;line-height:1}
@@ -309,8 +335,8 @@
   </div>
 
   <div class="cell id-cell bb">
-    <div class="word">elements</div>
-    <div class="slogan">viva sem medo</div>
+    <div class="logo-wrap"><img class="logo-img" src="elements-logo.png" alt="Elements"></div>
+    <div class="slogan">Viva sem medo. Viva no flow.</div>
   </div>
 
   <div class="cell hero-cell right bb">
