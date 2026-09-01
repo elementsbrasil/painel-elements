@@ -88,18 +88,19 @@
     mask-repeat:no-repeat; mask-position:center;
     background-size:280% 100%; background-position:150% 0;
     filter: blur(1.4px) saturate(1.35);
-    animation: logoShineSeq 12s ease-in-out infinite;
+    animation: holoShine 12s ease-in-out infinite;
     pointer-events:none;
   }
   @keyframes logoPulse{
     0%, 100% { filter: drop-shadow(0 0 5px rgba(180,124,255,.20)) drop-shadow(0 0 0px rgba(111,0,255,0)); transform:scale(1); }
     50%      { filter: drop-shadow(0 0 20px rgba(180,124,255,.7)) drop-shadow(0 0 34px rgba(111,0,255,.35)); transform:scale(1.008); }
   }
-  /* logo varre nos primeiros 40% do ciclo, depois fica "apagada" até o loop reiniciar */
-  @keyframes logoShineSeq{
+  /* sweep lento (~35% do ciclo de 12s = ~4,2s), compartilhado pela logo E
+     pela frase — ambas usam esta mesma animação, então passam juntas */
+  @keyframes holoShine{
     0%   { background-position:150% 0; }
-    28%  { background-position:150% 0; }
-    58%  { background-position:-50% 0; }
+    30%  { background-position:150% 0; }
+    65%  { background-position:-50% 0; }
     100% { background-position:-50% 0; }
   }
   /* mesma família/caixa-alta/tracking dos rótulos do painel (.eyebrow),
@@ -116,16 +117,8 @@
       rgba(180,124,255,.95) 68%, transparent 82%);
     background-size:280% 100%; background-position:150% 0;
     filter: blur(.6px) saturate(1.35);
-    animation: textShineSeq 12s ease-in-out infinite;
+    animation: holoShine 12s ease-in-out infinite;
     pointer-events:none;
-  }
-  /* a frase varre de 45% a 75% do MESMO ciclo — começa só depois que a
-     logo termina, dando a sensação de um raio só descendo de um pro outro */
-  @keyframes textShineSeq{
-    0%   { background-position:150% 0; }
-    66%  { background-position:150% 0; }
-    92%  { background-position:-50% 0; }
-    100% { background-position:-50% 0; }
   }
 
   /* ===== R1C1 / R1C3 — HERO =====
@@ -319,6 +312,30 @@
   .fsbtn.show{opacity:1;pointer-events:auto}
   .fsbtn:hover{transform:scale(1.06);border-color:rgba(180,124,255,.7);color:#fff}
   .fsbtn svg{width:18px;height:18px;display:block}
+
+  /* ============ Seletor de mês (mesmo comportamento do fechamento.html) ============
+     Some sozinho igual o botão de tela cheia: aparece no mouse/toque, some em 3s. */
+  .monthbar{ position:fixed; top:14px; left:14px; z-index:80;
+    display:flex; align-items:center; gap:10px;
+    background:rgba(20,16,32,.78); border:1px solid rgba(180,124,255,.35);
+    border-radius:9px; padding:7px 12px; backdrop-filter:blur(6px);
+    font-family:'Outfit',sans-serif;
+    opacity:0; pointer-events:none; transition:opacity .3s ease; }
+  .monthbar.show{ opacity:1; pointer-events:auto; }
+  .monthbar label{ font-size:11px; color:#8A8A92; text-transform:uppercase;
+    letter-spacing:.08em; white-space:nowrap; }
+  .monthbar select{ appearance:none; -webkit-appearance:none; background:transparent;
+    border:none; outline:none; color:#fff; font:inherit; font-size:13px;
+    font-weight:600; cursor:pointer; padding:2px 18px 2px 2px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9A7FF' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat; background-position:right center; background-size:13px; }
+  .monthbar select option{ background:#14101f; color:#fff; }
+  .modobadge{ font-size:10px; font-weight:700; letter-spacing:.08em;
+    padding:3px 8px; border-radius:5px; text-transform:uppercase; }
+  .modobadge.live{ background:rgba(67,224,138,.15); color:#43E08A;
+    border:1px solid rgba(67,224,138,.4); }
+  .modobadge.hist{ background:rgba(180,124,255,.15); color:#C9A7FF;
+    border:1px solid rgba(180,124,255,.4); }
 </style>
 
 <style>
@@ -386,6 +403,12 @@
 
 </div>
 
+<div class="monthbar" id="monthbar">
+  <label for="mesSel">Mês</label>
+  <select id="mesSel"></select>
+  <span class="modobadge" id="modobadge">—</span>
+</div>
+
 <button class="fsbtn" id="fsbtn" title="Tela cheia (F)" aria-label="Tela cheia">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
        stroke-linecap="round" stroke-linejoin="round">
@@ -408,6 +431,67 @@
 
   var URL_DADOS = '/.netlify/functions/painel-data';
 
+  /* ---------- Seletor de mês (mesmo comportamento do fechamento.html) ----------
+     Nomes de aba iguais aos de ABAS_POR_MES em painel-data.js. "" (Mês
+     vigente) não manda o parâmetro: quem decide o mês nesse caso é o
+     próprio backend (relógio de SP), igual sempre foi por padrão aqui. */
+  var MESES = [
+    { aba:'JAN',      label:'Janeiro'   },
+    { aba:'FEV',      label:'Fevereiro' },
+    { aba:'MAR',      label:'Março'     },
+    { aba:'ABRIL',    label:'Abril'     },
+    { aba:'MAIO',     label:'Maio'      },
+    { aba:'JUNHO',    label:'Junho'     },
+    { aba:'JULHO',    label:'Julho'     },
+    { aba:'AGOSTO',   label:'Agosto'    },
+    { aba:'SETEMBRO', label:'Setembro'  },
+    { aba:'OUTUBRO',  label:'Outubro'   },
+    { aba:'NOVEMBRO', label:'Novembro'  },
+    { aba:'DEZEMBRO', label:'Dezembro'  }
+  ];
+
+  function mesAtualBR(){
+    var f = new Intl.DateTimeFormat('en-US', { timeZone:'America/Sao_Paulo', month:'numeric' });
+    return parseInt(f.format(new Date()), 10) - 1;
+  }
+  function mesDaURL(){
+    var p = new URLSearchParams(location.search);
+    var m = (p.get('mes') || '').toUpperCase();
+    return MESES.some(function(x){ return x.aba === m; }) ? m : '';
+  }
+  var mesSelecionado = mesDaURL();
+
+  function urlComMes(mes, extra){
+    var url = new URL(location.href);
+    if (mes) url.searchParams.set('mes', mes); else url.searchParams.delete('mes');
+    if (extra) Object.keys(extra).forEach(function(k){ url.searchParams.set(k, extra[k]); });
+    return url;
+  }
+
+  function montarSeletor(){
+    var sel = document.getElementById('mesSel');
+    var h = '<option value="">Mês vigente</option>';
+    MESES.forEach(function(m){ h += '<option value="'+m.aba+'">'+m.label+'</option>'; });
+    sel.innerHTML = h;
+    sel.value = mesSelecionado;
+    sel.addEventListener('change', function(){
+      mesSelecionado = sel.value;
+      var u = urlComMes(mesSelecionado);
+      history.replaceState(null, '', u.pathname + u.search);
+      atualizarBadge();
+      carregar();
+    });
+  }
+  function atualizarBadge(){
+    var atualAba = MESES[mesAtualBR()].aba;
+    var alvo = mesSelecionado || atualAba;
+    var b = document.getElementById('modobadge');
+    if (alvo === atualAba) { b.textContent = 'Ao vivo';    b.className = 'modobadge live'; }
+    else                    { b.textContent = 'Histórico'; b.className = 'modobadge hist'; }
+  }
+  montarSeletor();
+  atualizarBadge();
+
   /* Quantos vendedores cabem no quadrante da linha 3 sem estourar a altura
      útil da TV. O Corporativo tem 8 nomes na planilha; com a nova linha de
      "vendido / meta · %" só cabem 7 sem encavalar no cabeçalho — o 8º sai
@@ -425,14 +509,22 @@
   fit();
   window.addEventListener('resize', fit);
 
-  /* ---------- Botão de tela cheia ----------
-     Aparece no movimento do mouse e some em 3s, pra não poluir a parede. */
+  /* ---------- Botão de tela cheia + seletor de mês ----------
+     Aparecem no movimento do mouse e somem em 3s, pra não poluir a parede.
+     O seletor não some enquanto o <select> está aberto/focado. */
   (function(){
-    var btn = document.getElementById('fsbtn'), t;
+    var btn = document.getElementById('fsbtn');
+    var mbar = document.getElementById('monthbar');
+    var sel = document.getElementById('mesSel');
+    var t, travado = false;
     function mostrar(){
       btn.classList.add('show');
+      mbar.classList.add('show');
       clearTimeout(t);
-      t = setTimeout(function(){ btn.classList.remove('show'); }, 3000);
+      t = setTimeout(function(){
+        btn.classList.remove('show');
+        if (!travado) mbar.classList.remove('show');
+      }, 3000);
     }
     document.addEventListener('mousemove', mostrar);
     document.addEventListener('touchstart', mostrar, {passive:true});
@@ -448,6 +540,9 @@
     document.addEventListener('keydown', function(e){
       if (e.key === 'f' || e.key === 'F') btn.click();
     });
+    sel.addEventListener('focus', function(){ travado = true; mostrar(); });
+    sel.addEventListener('blur',  function(){ travado = false; mostrar(); });
+    mostrar();
   })();
 
 
@@ -460,7 +555,8 @@
           pra conferir de longe se ela já pegou o deploy novo
      A rede de segurança de 6h no fim do arquivo continua existindo.      */
   function recarregar(){
-    location.replace(location.pathname + '?_r=' + Date.now());
+    var u = urlComMes(mesSelecionado, { _r: Date.now() });
+    location.replace(u.pathname + u.search);
   }
   document.addEventListener('keydown', function(e){
     if (e.key === 'r' || e.key === 'R') recarregar();
@@ -798,12 +894,21 @@
 
   /* ---------- Busca os dados ---------- */
   function carregar(){
-    fetch(URL_DADOS + '?_=' + Date.now(), { cache: 'no-store' })
+    var qs = '?_=' + Date.now();
+    if (mesSelecionado) qs += '&mes=' + encodeURIComponent(mesSelecionado);
+    fetch(URL_DADOS + qs, { cache: 'no-store' })
       .then(function(r){
-        if (!r.ok) throw new Error('HTTP ' + r.status + ' ao buscar ' + URL_DADOS);
-        return r.json();
+        return r.json()
+          .catch(function(){ return null; })
+          .then(function(body){ return { ok: r.ok, status: r.status, body: body }; });
       })
-      .then(render)
+      .then(function(res){
+        if (!res.body) throw new Error('HTTP ' + res.status + ' (sem corpo de resposta)');
+        if (!res.ok || res.body.error) {
+          throw new Error(res.body.detail || res.body.error || ('HTTP ' + res.status));
+        }
+        render(res.body);
+      })
       .catch(function(err){ falhar(err.message); });
   }
 
@@ -815,7 +920,8 @@
      NÃO trocar por location.reload() sem cache-busting — quebra o
      auto-refresh na TV física (fica preso em versão antiga em cache). */
   setTimeout(function(){
-    location.replace(location.pathname + '?_r=' + Date.now());
+    var u = urlComMes(mesSelecionado, { _r: Date.now() });
+    location.replace(u.pathname + u.search);
     }, 6 * 60 * 60 * 1000);
 })();
 </script>
