@@ -117,36 +117,65 @@
   .bigpct{ font-family:'Red Hat Display'; font-weight:800; color:var(--lilac);
     font-size:32px; line-height:1; flex-shrink:0; }
 
-  /* marca — logo oficial em PNG (troca a "palavra" por imagem), com glow
-     pulsando contínuo + brilho cintilante varrendo por cima a cada 6s */
-  .brand{ text-align:center; padding:0 54px; }
-  .brand .logo-wrap{ position:relative; display:inline-block;
+  /* marca — logo oficial em PNG + frase como "linha 2" da mesma marca, não
+     uma legenda solta: mesmo halo pulsando (aplicado no .brand inteiro, não
+     em cada peça separada) e um único raio de brilho que varre a logo
+     primeiro e depois desce e varre a frase, letra por letra, no mesmo
+     ciclo de 6s. */
+  .brand{ text-align:center; padding:0 54px;
     animation: logoPulse 3.4s ease-in-out infinite; }
+  .brand .logo-wrap{ position:relative; display:inline-block; }
   .brand .logo-wrap .logo-img{ display:block; height:42px; width:auto; }
   .brand .logo-wrap::after{
     content:''; position:absolute; top:0; left:0; width:100%; height:100%;
-    background:linear-gradient(100deg, transparent 30%, rgba(255,255,255,.95) 48%,
-      rgba(201,167,255,.95) 52%, transparent 70%);
+    background:linear-gradient(100deg, transparent 18%, rgba(111,0,255,.9) 30%,
+      rgba(78,230,255,.9) 40%, rgba(255,255,255,1) 48%, rgba(255,62,200,.9) 56%,
+      rgba(180,124,255,.9) 68%, transparent 82%);
     -webkit-mask-image:url('elements-logo.png'); -webkit-mask-size:contain;
     -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
     mask-image:url('elements-logo.png'); mask-size:contain;
     mask-repeat:no-repeat; mask-position:center;
-    background-size:300% 100%; background-position:150% 0;
-    animation: logoShine 6s ease-in-out infinite;
+    background-size:280% 100%; background-position:150% 0;
+    filter: blur(1.4px) saturate(1.35);
+    animation: logoShineSeq 12s ease-in-out infinite;
     pointer-events:none;
   }
   @keyframes logoPulse{
-    0%, 100% { filter: drop-shadow(0 0 6px rgba(180,124,255,.22)) drop-shadow(0 0 0px rgba(111,0,255,0)); transform:scale(1); }
-    50%      { filter: drop-shadow(0 0 24px rgba(180,124,255,.8)) drop-shadow(0 0 42px rgba(111,0,255,.4)); transform:scale(1.012); }
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(180,124,255,.20)) drop-shadow(0 0 0px rgba(111,0,255,0)); transform:scale(1); }
+    50%      { filter: drop-shadow(0 0 20px rgba(180,124,255,.7)) drop-shadow(0 0 34px rgba(111,0,255,.35)); transform:scale(1.008); }
   }
-  @keyframes logoShine{
+  /* logo varre nos primeiros 40% do ciclo, depois fica "apagada" até o loop reiniciar */
+  @keyframes logoShineSeq{
     0%   { background-position:150% 0; }
-    55%  { background-position:150% 0; }
-    75%  { background-position:-50% 0; }
+    28%  { background-position:150% 0; }
+    58%  { background-position:-50% 0; }
     100% { background-position:-50% 0; }
   }
-  .brand .slogan{ font-family:'Red Hat Display'; font-style:italic; font-weight:700;
-    color:#fff; font-size:21px; margin-top:11px; }
+  /* mesma família/caixa-alta/tracking dos rótulos do painel (.eyebrow),
+     pra frase ler como parte da marca e não como legenda separada */
+  .brand .slogan{ position:relative; display:inline-block;
+    font-family:'Outfit',Helvetica,Arial,sans-serif; font-weight:600;
+    text-transform:uppercase; letter-spacing:.14em;
+    color:rgba(255,255,255,.82); font-size:14px; margin-top:7px; }
+  .brand .slogan::after{
+    content:attr(data-text); position:absolute; inset:0;
+    color:transparent; -webkit-background-clip:text; background-clip:text;
+    background-image:linear-gradient(100deg, transparent 18%, rgba(111,0,255,.95) 30%,
+      rgba(78,230,255,.95) 40%, rgba(255,255,255,1) 48%, rgba(255,62,200,.95) 56%,
+      rgba(180,124,255,.95) 68%, transparent 82%);
+    background-size:280% 100%; background-position:150% 0;
+    filter: blur(.6px) saturate(1.35);
+    animation: textShineSeq 12s ease-in-out infinite;
+    pointer-events:none;
+  }
+  /* a frase varre de 45% a 75% do MESMO ciclo — começa só depois que a
+     logo termina, dando a sensação de um raio só descendo de um pro outro */
+  @keyframes textShineSeq{
+    0%   { background-position:150% 0; }
+    66%  { background-position:150% 0; }
+    92%  { background-position:-50% 0; }
+    100% { background-position:-50% 0; }
+  }
 
   .proj{ text-align:right; }
   .proj .num{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
@@ -349,7 +378,7 @@
 
     <div class="brand">
       <div class="logo-wrap"><img class="logo-img" src="elements-logo.png" alt="Elements"></div>
-      <div class="slogan">Viva sem medo. Viva no flow.</div>
+      <div class="slogan" data-text="Viva sem medo. Viva no flow.">Viva sem medo. Viva no flow.</div>
     </div>
 
     <div class="proj">
