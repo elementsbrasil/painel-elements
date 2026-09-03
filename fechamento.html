@@ -117,7 +117,200 @@
   .bigpct{ font-family:'Red Hat Display'; font-weight:800; color:var(--lilac);
     font-size:32px; line-height:1; flex-shrink:0; }
 
-  /* marca — logo oficial em PNG + frase como "linha 2" da mesma marca, não
+  /* ============ 3 CARTÕES · UM POR CANAL ============ */
+  .canais{
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:20px; padding:0 30px 24px; min-height:0;
+  }
+  .canal{
+    display:flex; flex-direction:column; min-height:0;
+    padding:22px 26px 20px;
+    border-radius:22px;
+    border:1px solid var(--card-brd);
+    background:linear-gradient(180deg,var(--card-bg1) 0%,var(--card-bg2) 42%,
+      rgba(255,255,255,.006) 100%);
+    position:relative; overflow:hidden;
+  }
+  /* fio de luz no topo do cartão: dá borda superior sem "moldura" pesada */
+  .canal::before{
+    content:''; position:absolute; top:0; left:9%; right:9%; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(180,124,255,.55),transparent);
+  }
+
+  /* --- cabeçalho do cartão --- */
+  .c-head{ display:flex; align-items:baseline; justify-content:space-between;
+    gap:14px; flex-shrink:0; }
+  .c-nome{ font-family:'Red Hat Display'; font-weight:700; color:#fff;
+    font-size:29px; letter-spacing:.005em; line-height:1; }
+  .c-pct{ font-family:'Red Hat Display'; font-weight:800; color:var(--lilac);
+    font-size:31px; line-height:1; }
+
+  /* --- números do mês --- */
+  .c-val{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
+    font-size:43px; line-height:1; margin-top:13px; flex-shrink:0; }
+  .c-val .cur{ font-size:.42em; color:var(--muted); margin-right:.14em;
+    vertical-align:.32em; font-weight:700; }
+  .c-meta{ font-size:15px; color:var(--muted); margin-top:7px; flex-shrink:0;
+    display:flex; justify-content:space-between; gap:12px; }
+  .c-meta b{ color:var(--ink2); font-weight:600; }
+  .c-track{ height:7px; background:var(--trilho); border-radius:5px;
+    overflow:hidden; margin-top:11px; flex-shrink:0; }
+  .c-track i{ display:block; height:100%; border-radius:5px;
+    background:linear-gradient(90deg,var(--purple),var(--lilac2)); }
+  .c-track i.ok{ background:linear-gradient(90deg,#1E9E5C,var(--green)); }
+
+  /* --- rótulo de seção (interno ao cartão) --- */
+  .sec{ display:flex; align-items:baseline; justify-content:space-between;
+    gap:12px; flex-shrink:0; margin-top:20px; padding-top:15px;
+    border-top:1px solid var(--hair); }
+  .sec .t{ font-size:12px; letter-spacing:.19em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; }
+  .sec .s{ font-family:'Red Hat Display'; font-weight:800; font-size:18px;
+    color:var(--green); line-height:1; }
+  .sec .s.off{ color:var(--muted2); }
+  .sec .s span{ font-family:'Outfit'; font-weight:400; font-size:11px;
+    letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-left:5px; }
+
+  /* --- ranking (top 4) ---
+     Linhas com altura MÍNIMA fixa e MÁXIMA travada: com só 4 linhas
+     sempre, cresce até o teto e para, em vez de esticar até ocupar a
+     coluna inteira. A lista fica CENTRADA na altura livre e o rodapé
+     ancorado no pé — a sobra vira respiro em cima E embaixo. */
+  .lb{ list-style:none; display:flex; flex-direction:column;
+    justify-content:center; gap:4px; margin-top:11px;
+    flex:1 1 auto; min-height:0; overflow:hidden; }
+  .lb li{ display:flex; align-items:center; gap:12px;
+    flex:1 1 auto; min-height:44px; max-height:72px; }
+  .av{ width:36px; height:36px; border-radius:50%; background:rgba(111,0,255,.14);
+    border:1px solid rgba(111,0,255,.42); flex-shrink:0; display:flex;
+    align-items:center; justify-content:center; font-family:'Red Hat Display';
+    font-weight:700; color:var(--lilac); font-size:14px; letter-spacing:.02em; }
+  .lb li.p1 .av{ background:linear-gradient(135deg,var(--purple),var(--lilac2));
+    color:#fff; border:none; box-shadow:0 0 14px rgba(111,0,255,.5); }
+  .lb-mid{ flex:1; min-width:0; }
+  .lb-row{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+  .lb-name{ font-weight:400; color:#fff; font-size:20px; line-height:1.15;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lb li.p1 .lb-name{ font-weight:600; }
+  .lb-val{ font-family:'Red Hat Display'; font-weight:700; color:#fff;
+    font-size:18px; line-height:1.15; flex-shrink:0; white-space:nowrap; }
+  .lb-val .m{ color:var(--muted); font-weight:400; font-size:.82em; }
+  .lb-bot{ display:flex; align-items:center; gap:10px; margin-top:5px; }
+  .lb-bar{ flex:1; min-width:0; height:5px; background:var(--trilho);
+    border-radius:4px; overflow:hidden; }
+  .lb-bar i{ display:block; height:100%; border-radius:4px;
+    background:linear-gradient(90deg,var(--purple),var(--lilac2)); }
+  .lb-pct{ font-family:'Red Hat Display'; font-weight:700; font-size:16px;
+    line-height:1; color:var(--lilac); flex-shrink:0; min-width:3.1em; text-align:right; }
+  .lb li.zero .lb-name, .lb li.zero .lb-val{ color:var(--muted2); }
+  .lb li.zero .lb-pct{ color:var(--muted2); }
+
+  /* bateu a meta: selo ✓ + barra e % em verde.
+     O verde nunca significa outra coisa no painel, e nunca vem sozinho —
+     sempre acompanhado do ✓, pra não depender de cor. */
+  .ok-badge{ display:inline-flex; align-items:center; justify-content:center;
+    width:19px; height:19px; border-radius:50%; margin-left:8px;
+    background:rgba(67,224,138,.16); border:1px solid rgba(67,224,138,.55);
+    color:var(--green); font-size:11px; font-weight:700; line-height:1;
+    vertical-align:middle; }
+  .lb li.ok .lb-bar i{ background:linear-gradient(90deg,#1E9E5C,var(--green)); }
+  .lb li.ok .lb-pct{ color:var(--green); }
+  .lb li.ok .av{ border-color:rgba(67,224,138,.55); color:var(--green);
+    background:rgba(67,224,138,.12); box-shadow:none; }
+  .lb li.p1.ok .av{ background:linear-gradient(135deg,#7CF0B6,#1E9E5C);
+    color:#04140C; box-shadow:0 0 14px rgba(67,224,138,.45); }
+
+  /* --- rodapé de ritmo, ancorado no pé do cartão --- */
+  .ritmo{ margin-top:auto; padding-top:16px; border-top:1px solid var(--hair);
+    flex-shrink:0; }
+  .ritmo-lab{ font-size:12px; letter-spacing:.19em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; margin-bottom:13px; }
+  .indgrid{ display:grid; grid-template-columns:1fr 1fr; gap:15px 22px; }
+  .ind{ min-width:0; }
+  .ind .v{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
+    font-size:33px; line-height:1; letter-spacing:-.01em; white-space:nowrap; }
+  .ind .v .cur{ font-size:.44em; color:var(--muted); font-weight:700;
+    margin-right:.1em; vertical-align:.2em; }
+  .ind .v.accent{ color:var(--lilac); }
+  .ind .v.green{ color:var(--green); }
+  .ind .l{ font-size:12px; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--muted); margin-top:7px; }
+  .ind .sub{ font-size:12px; color:var(--muted2); margin-top:4px; }
+  .ind .sub b{ color:var(--muted); font-weight:500; }
+  .ind .sub b.ok{ color:var(--green); }
+
+  /* ============ VIRAR DE TELA (frente = visão geral · trás = por vendedor) ============
+     Só a área dos canais vira — o topo (total geral/projeção/marca) é
+     compartilhado pelas duas faces, então continua visível sempre. */
+  .flipstage{ perspective:2600px; min-height:0; flex:1; }
+  .flipper{ position:relative; width:100%; height:100%;
+    transform-style:preserve-3d; transition:transform 1s cubic-bezier(.6,.1,.25,1); }
+  .flipper.virado{ transform:rotateY(180deg); }
+  .face{ position:absolute; inset:0; backface-visibility:hidden; }
+  .face.back{ transform:rotateY(180deg); }
+
+  /* --- por vendedor (face de trás) --- */
+  .vdet{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; height:100%;
+    padding:0 30px 24px; box-sizing:border-box; }
+  .vzona{ display:flex; flex-direction:column; min-height:0; padding:20px 24px;
+    border-radius:22px; border:1px solid var(--card-brd);
+    background:linear-gradient(180deg,var(--card-bg1) 0%,var(--card-bg2) 42%,
+      rgba(255,255,255,.006) 100%); position:relative; overflow:hidden; }
+  .vzona::before{ content:''; position:absolute; top:0; left:9%; right:9%; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(180,124,255,.55),transparent); }
+  .vzona-head{ display:flex; align-items:baseline; justify-content:space-between;
+    flex-shrink:0; margin-bottom:4px; }
+  .vzona-nome{ font-family:'Red Hat Display'; font-weight:700; color:#fff; font-size:22px; }
+  .vzona-ok{ font-family:'Red Hat Display'; font-weight:800; font-size:15px; color:var(--green); }
+  .vzona-ok.off{ color:var(--muted2); }
+  .vlista-holder{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+  .vlista{ list-style:none; margin:8px 0 0; padding:0; flex:1 1 auto; min-height:0;
+    display:flex; flex-direction:column; justify-content:center; gap:6px; overflow:hidden; }
+  .vlista li{ flex-shrink:0; padding:8px 0; border-bottom:1px solid var(--hair); }
+  .vlista li:last-child{ border-bottom:none; }
+  .v-row1{ display:flex; align-items:center; gap:10px; }
+  .v-nome{ flex:1; min-width:0; font-weight:400; color:#fff; font-size:17px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .v-pct{ font-family:'Red Hat Display'; font-weight:800; font-size:15px; color:var(--lilac); flex-shrink:0; }
+  .v-row2{ display:flex; flex-wrap:wrap; gap:3px 14px; margin-top:5px; padding-left:46px; }
+  .v-stat{ font-size:12px; color:var(--muted); white-space:nowrap; }
+  .v-stat b{ font-family:'Red Hat Display'; font-weight:700; color:var(--ink2); font-size:12.5px; }
+  li.v-ok .v-pct{ color:var(--green); }
+  li.v-ok .v-nome{ color:#fff; }
+  li.v-ok .v-stat.falta b{ color:var(--green); }
+  .v-badge{ display:inline-flex; align-items:center; justify-content:center;
+    width:16px; height:16px; border-radius:50%; margin-left:6px;
+    background:rgba(67,224,138,.16); border:1px solid rgba(67,224,138,.55);
+    color:var(--green); font-size:9px; font-weight:700; vertical-align:middle; }
+  .vlista-vazia{ margin:auto; color:var(--muted2); font-size:13px; text-align:center; }
+  .v-resumo{ flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+    padding:10px 0 2px; color:var(--muted); font-size:13px; border-top:1px dashed var(--hair); }
+  .v-resumo b{ color:var(--lilac2); }
+
+  /* ============ Barra de controle da virada ============ */
+  .flipbar{ position:fixed; top:14px; right:60px; z-index:80;
+    display:flex; align-items:center; gap:10px;
+    background:rgba(20,16,32,.78); border:1px solid rgba(180,124,255,.35);
+    border-radius:9px; padding:7px 12px; backdrop-filter:blur(6px);
+    font-family:'Outfit',sans-serif;
+    opacity:0; pointer-events:none; transition:opacity .3s ease; }
+  .flipbar.show{ opacity:1; pointer-events:auto; }
+  .flipbar label{ font-size:11px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.06em; white-space:nowrap; }
+  .flipbar input[type=number]{ width:40px; background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.15); border-radius:6px; color:#fff;
+    font:600 13px 'Outfit'; text-align:center; padding:3px 2px; }
+  .flipbar input[type=number]::-webkit-inner-spin-button{ opacity:.6; }
+  .flipbar button{ background:rgba(255,255,255,.06); border:1px solid rgba(180,124,255,.4);
+    color:#C9A7FF; border-radius:7px; width:30px; height:26px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:all .15s ease; }
+  .flipbar button:hover{ background:rgba(180,124,255,.18); color:#fff; }
+  .flipbar button svg{ width:15px; height:15px; }
+  .flipbar .dots{ display:flex; gap:5px; margin-left:2px; }
+  .flipbar .dot{ width:6px; height:6px; border-radius:50%; background:var(--muted2);
+    transition:background .2s ease, transform .2s ease; }
+  .flipbar .dot.on{ background:var(--lilac2); transform:scale(1.25); }
+
      uma legenda solta: mesmo halo pulsando (aplicado no .brand inteiro, não
      em cada peça separada) e o MESMO raio de brilho passando pela logo e
      pela frase ao mesmo tempo (não mais sequencial). display:flex column
@@ -182,139 +375,6 @@
     font-size:.8em; letter-spacing:.14em; margin-top:2px; }
   .proj .sub{ font-size:15px; color:var(--muted); margin-top:6px; }
   .proj .sub b{ color:var(--ink2); font-weight:600; }
-
-  /* ============ TOPO: 3 CABEÇALHOS IGUAIS + FAIXA DE RANKING COMPARTILHADA ============
-     Antes cada canal era um cartão só (header+lista+ritmo empilhados), e a
-     lista de vendedores — a ÚNICA parte que muda de tamanho mês a mês —
-     ficava presa numa largura de 1/3 fixa: sobrava espaço em quem tem pouca
-     gente (Revenda/Digital) e cortava quem tem muita (Corporativo).
-     Agora: os números + ritmo do canal (que NÃO variam de tamanho) formam
-     3 cabeçalhos iguais no topo. A lista vira uma faixa única embaixo,
-     dividida em zonas cuja LARGURA é proporcional a quantas colunas de
-     nomes aquele canal precisa — quem tem pouca gente cede largura pra
-     quem tem muita, sem encolher fonte nem cortar ninguém. */
-  .mid{ display:flex; flex-direction:column; gap:16px; min-height:0;
-    padding:0 30px 24px; }
-
-  .heads{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; flex-shrink:0; }
-  .head-card{
-    padding:20px 26px; border-radius:22px;
-    border:1px solid var(--card-brd);
-    background:linear-gradient(180deg,var(--card-bg1) 0%,var(--card-bg2) 100%);
-    position:relative; overflow:hidden;
-  }
-  .head-card::before{
-    content:''; position:absolute; top:0; left:9%; right:9%; height:1px;
-    background:linear-gradient(90deg,transparent,rgba(180,124,255,.55),transparent);
-  }
-
-  /* --- cabeçalho do cartão --- */
-  .c-head{ display:flex; align-items:baseline; justify-content:space-between; gap:14px; }
-  .c-nome{ font-family:'Red Hat Display'; font-weight:700; color:#fff;
-    font-size:26px; letter-spacing:.005em; line-height:1; }
-  .c-pct{ font-family:'Red Hat Display'; font-weight:800; color:var(--lilac);
-    font-size:28px; line-height:1; }
-
-  /* --- números do mês --- */
-  .c-val{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
-    font-size:38px; line-height:1; margin-top:11px; }
-  .c-val .cur{ font-size:.42em; color:var(--muted); margin-right:.14em;
-    vertical-align:.32em; font-weight:700; }
-  .c-meta{ font-size:14px; color:var(--muted); margin-top:6px;
-    display:flex; justify-content:space-between; gap:12px; }
-  .c-meta b{ color:var(--ink2); font-weight:600; }
-  .c-track{ height:6px; background:var(--trilho); border-radius:5px;
-    overflow:hidden; margin-top:10px; }
-  .c-track i{ display:block; height:100%; border-radius:5px;
-    background:linear-gradient(90deg,var(--purple),var(--lilac2)); }
-  .c-track i.ok{ background:linear-gradient(90deg,#1E9E5C,var(--green)); }
-
-  /* --- ritmo do canal: igual de sempre, só que agora dentro do cabeçalho
-     (não precisa mais de margin-top:auto — o cartão não estica mais pra
-     preencher a altura toda, o conteúdo é que define a altura dele) --- */
-  .ritmo{ margin-top:16px; padding-top:15px; border-top:1px solid var(--hair); }
-  .ritmo-lab{ font-size:11px; letter-spacing:.18em; text-transform:uppercase;
-    color:var(--muted); font-weight:600; margin-bottom:12px; }
-  .indgrid{ display:grid; grid-template-columns:1fr 1fr; gap:13px 20px; }
-  .ind{ min-width:0; }
-  .ind .v{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
-    font-size:27px; line-height:1; letter-spacing:-.01em; white-space:nowrap; }
-  .ind .v .cur{ font-size:.44em; color:var(--muted); font-weight:700;
-    margin-right:.1em; vertical-align:.2em; }
-  .ind .v.accent{ color:var(--lilac); }
-  .ind .v.green{ color:var(--green); }
-  .ind .l{ font-size:11px; letter-spacing:.12em; text-transform:uppercase;
-    color:var(--muted); margin-top:6px; }
-  .ind .sub{ font-size:11px; color:var(--muted2); margin-top:3px; }
-  .ind .sub b{ color:var(--muted); font-weight:500; }
-  .ind .sub b.ok{ color:var(--green); }
-
-  /* --- faixa única de ranking --- */
-  .rankwrap{
-    flex:1 1 auto; min-height:0; display:flex; flex-direction:column;
-    padding:20px 26px; border-radius:22px;
-    border:1px solid var(--card-brd);
-    background:linear-gradient(180deg,var(--card-bg1) 0%,var(--card-bg2) 42%,
-      rgba(255,255,255,.006) 100%);
-    position:relative; overflow:hidden;
-  }
-  .rankwrap::before{
-    content:''; position:absolute; top:0; left:5%; right:5%; height:1px;
-    background:linear-gradient(90deg,transparent,rgba(180,124,255,.55),transparent);
-  }
-  .rank-titulo{ font-size:12px; letter-spacing:.19em; text-transform:uppercase;
-    color:var(--muted); font-weight:600; flex-shrink:0; margin-bottom:14px; }
-  .zonas{ display:grid; gap:0; flex:1; min-height:0; }
-  .zona{ min-width:0; padding:0 22px; display:flex; flex-direction:column; min-height:0; }
-  .zona + .zona{ border-left:1px solid var(--hair); }
-  .zona:first-child{ padding-left:0; }
-  .zona-head{ display:flex; align-items:baseline; justify-content:space-between;
-    flex-shrink:0; margin-bottom:9px; }
-  .zona-nome{ font-family:'Red Hat Display'; font-weight:700; color:#fff; font-size:16px; }
-  .zona-nome span{ font-family:'Outfit'; font-weight:400; color:var(--muted);
-    font-size:11px; margin-left:7px; text-transform:none; letter-spacing:0; }
-  .zona-ok{ font-family:'Red Hat Display'; font-weight:800; font-size:14px; color:var(--green); }
-  .zona-ok.off{ color:var(--muted2); }
-
-  .colunas{ list-style:none; margin:0; padding:0; flex:1; min-height:0; column-gap:20px; }
-  .colunas.c1{ column-count:1; }
-  .colunas.c2{ column-count:2; }
-  .colunas.c3{ column-count:3; }
-  .colunas li{ break-inside:avoid; display:flex; align-items:center; gap:10px;
-    height:var(--rowh,46px); }
-  .av{ width:32px; height:32px; border-radius:50%; background:rgba(111,0,255,.14);
-    border:1px solid rgba(111,0,255,.42); flex-shrink:0; display:flex;
-    align-items:center; justify-content:center; font-family:'Red Hat Display';
-    font-weight:700; color:var(--lilac); font-size:12px; letter-spacing:.02em; }
-  .colunas li.p1 .av{ background:linear-gradient(135deg,var(--purple),var(--lilac2));
-    color:#fff; border:none; box-shadow:0 0 12px rgba(111,0,255,.5); }
-  .li-mid{ flex:1; min-width:0; display:flex; align-items:baseline;
-    justify-content:space-between; gap:10px; }
-  .li-nome{ font-size:15px; color:#fff; line-height:1.15; white-space:nowrap;
-    overflow:hidden; text-overflow:ellipsis; }
-  .colunas li.p1 .li-nome{ font-weight:600; }
-  .li-val{ font-family:'Red Hat Display'; font-weight:700; font-size:14px;
-    color:#fff; flex-shrink:0; white-space:nowrap; }
-  .li-val .m{ color:var(--muted); font-weight:400; font-size:.82em; }
-  .colunas li.zero .li-nome, .colunas li.zero .li-val{ color:var(--muted2); }
-  .colunas li.ok .li-val{ color:var(--green); }
-
-  .ok-badge{ display:inline-flex; align-items:center; justify-content:center;
-    width:17px; height:17px; border-radius:50%; margin-left:7px;
-    background:rgba(67,224,138,.16); border:1px solid rgba(67,224,138,.55);
-    color:var(--green); font-size:10px; font-weight:700; line-height:1;
-    vertical-align:middle; }
-  .colunas li.ok .av{ border-color:rgba(67,224,138,.55); color:var(--green);
-    background:rgba(67,224,138,.12); box-shadow:none; }
-  .colunas li.p1.ok .av{ background:linear-gradient(135deg,#7CF0B6,#1E9E5C);
-    color:#04140C; box-shadow:0 0 12px rgba(67,224,138,.45); }
-
-  /* linha-resumo quando nem 3 colunas bastam pra caber todo mundo */
-  .resumo-linha{ break-inside:avoid; display:flex; align-items:center;
-    justify-content:space-between; height:var(--rowh,46px); color:var(--muted);
-    font-size:14px; border-top:1px dashed var(--hair); }
-  .resumo-linha b{ color:var(--lilac2); }
-  .resumo-linha .valor{ font-family:'Red Hat Display'; font-weight:700; color:var(--ink2); }
 
   /* ============ Botão de tela cheia ============ */
   .fsbtn{ position:fixed; top:14px; right:14px; z-index:80;
@@ -393,16 +453,23 @@
     </div>
   </div>
 
-  <!-- ===== 3 CABEÇALHOS + FAIXA DE RANKING COMPARTILHADA ===== -->
-  <div class="mid">
-    <div class="heads">
-      <div class="head-card" id="head0"></div>
-      <div class="head-card" id="head1"></div>
-      <div class="head-card" id="head2"></div>
-    </div>
-    <div class="rankwrap">
-      <div class="rank-titulo">Ranking de vendedores por canal</div>
-      <div class="zonas" id="zonas"></div>
+  <!-- ===== VIRA ENTRE VISÃO GERAL (top 4) E DETALHE POR VENDEDOR ===== -->
+  <div class="flipstage">
+    <div class="flipper" id="flipper">
+      <div class="face front">
+        <div class="canais">
+          <div class="canal" id="c0"></div>
+          <div class="canal" id="c1"></div>
+          <div class="canal" id="c2"></div>
+        </div>
+      </div>
+      <div class="face back">
+        <div class="vdet">
+          <div class="vzona" id="v0"></div>
+          <div class="vzona" id="v1"></div>
+          <div class="vzona" id="v2"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -412,6 +479,29 @@
   <label for="mesSel">Mês</label>
   <select id="mesSel"></select>
   <span class="modobadge" id="modobadge">—</span>
+</div>
+
+<div class="flipbar" id="flipbar">
+  <label for="flipSeg">Virar a cada</label>
+  <input type="number" id="flipSeg" min="3" max="120" step="1" value="10">
+  <label>s</label>
+  <button id="btnFlipNow" title="Virar agora">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 2.1l4 4-4 4M3 12.9V12a9 9 0 0 1 15-6.7M7 21.9l-4-4 4-4M21 11.1V12a9 9 0 0 1-15 6.7"/>
+    </svg>
+  </button>
+  <button id="btnPausa" title="Pausar / retomar a virada automática">
+    <svg id="iconPausa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>
+    </svg>
+    <svg id="iconPlay" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round" style="display:none">
+      <path d="M6 3l16 9-16 9V3z"></path>
+    </svg>
+  </button>
+  <span class="dots"><span class="dot" id="dotA"></span><span class="dot" id="dotB"></span></span>
 </div>
 
 <button class="fsbtn" id="fsbtn" title="Tela cheia (F)" aria-label="Tela cheia">
@@ -507,22 +597,26 @@
   fit();
   window.addEventListener('resize', fit);
 
-  /* Botão de tela cheia + seletor de mês — aparecem no movimento do mouse
-     ou toque, somem em 3s. O seletor não some enquanto o <select> está
-     aberto/focado (senão o dropdown desaparece embaixo do dedo/mouse). */
+  /* Botão de tela cheia + seletor de mês + barra de virada — aparecem no
+     movimento do mouse ou toque, somem em 3s. Nenhum some enquanto algum
+     campo interno estiver focado (senão o controle desaparece embaixo do
+     dedo/mouse no meio do ajuste). */
   (function(){
     var btn = document.getElementById('fsbtn');
     var mbar = document.getElementById('monthbar');
+    var fbar = document.getElementById('flipbar');
     var sel = document.getElementById('mesSel');
+    var segInput = document.getElementById('flipSeg');
     var t, travado = false;
 
     function mostrar(){
       btn.classList.add('show');
       mbar.classList.add('show');
+      fbar.classList.add('show');
       clearTimeout(t);
       t = setTimeout(function(){
         btn.classList.remove('show');
-        if (!travado) mbar.classList.remove('show');
+        if (!travado) { mbar.classList.remove('show'); fbar.classList.remove('show'); }
       }, 3000);
     }
     document.addEventListener('mousemove', mostrar);
@@ -542,8 +636,75 @@
 
     sel.addEventListener('focus', function(){ travado = true; mostrar(); });
     sel.addEventListener('blur',  function(){ travado = false; mostrar(); });
+    segInput.addEventListener('focus', function(){ travado = true; mostrar(); });
+    segInput.addEventListener('blur',  function(){ travado = false; mostrar(); });
 
-    mostrar();   // pisca uma vez ao carregar, pra avisar que o controle existe
+    mostrar();   // pisca uma vez ao carregar, pra avisar que os controles existem
+  })();
+
+  /* ---------- Virar de tela: visão geral (top 4) <-> por vendedor ----------
+     Troca sozinha a cada N segundos (configurável no campo da barra),
+     com um botão pra virar na hora e outro pra pausar/retomar. O estado
+     (segundos e pausado) fica só em memória — some se a página recarregar
+     (troca de mês, rede de segurança de 6h, tecla R). */
+  (function(){
+    var flipper = document.getElementById('flipper');
+    var segInput = document.getElementById('flipSeg');
+    var btnNow = document.getElementById('btnFlipNow');
+    var btnPausa = document.getElementById('btnPausa');
+    var iconPausa = document.getElementById('iconPausa');
+    var iconPlay = document.getElementById('iconPlay');
+    var dotA = document.getElementById('dotA');
+    var dotB = document.getElementById('dotB');
+
+    var virado = false;
+    var pausado = false;
+    var segundos = Math.max(3, parseInt(segInput.value, 10) || 10);
+    var timer = null;
+
+    function atualizarDots(){
+      dotA.classList.toggle('on', !virado);
+      dotB.classList.toggle('on', virado);
+    }
+    function aplicar(){
+      flipper.classList.toggle('virado', virado);
+      atualizarDots();
+    }
+    function agendar(){
+      clearTimeout(timer);
+      if (!pausado) timer = setTimeout(virar, segundos * 1000);
+    }
+    function virar(){
+      virado = !virado;
+      aplicar();
+      agendar();
+    }
+    window.virarPainel = virar;   // exposto só pra facilitar teste manual no console
+
+    segInput.addEventListener('input', function(){
+      var v = parseInt(segInput.value, 10);
+      if (!v || v < 3) return;               // espera terminar de digitar um valor válido
+      segundos = Math.min(120, v);
+      agendar();                             // reinicia a contagem com o novo intervalo
+    });
+
+    btnNow.addEventListener('click', virar);
+
+    btnPausa.addEventListener('click', function(){
+      pausado = !pausado;
+      iconPausa.style.display = pausado ? 'none' : '';
+      iconPlay.style.display  = pausado ? '' : 'none';
+      btnPausa.title = pausado ? 'Retomar a virada automática' : 'Pausar a virada automática';
+      if (pausado) clearTimeout(timer); else agendar();
+    });
+
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'v' || e.key === 'V') virar();
+      if (e.key === 'p' || e.key === 'P') btnPausa.click();
+    });
+
+    aplicar();
+    agendar();
   })();
 
   /* ---------- Recarga MANUAL ----------
@@ -603,70 +764,114 @@
     return p.meta > 0 && (p.valor||0) >= p.meta;
   }
 
-  /* ---------- Faixa de ranking: zonas com largura proporcional ----------
-     A única coisa que muda de tamanho mês a mês é a QUANTIDADE de
-     vendedores por canal — os números e o ritmo do canal não. Por isso só
-     o ranking vira uma faixa única, dividida em zonas cuja LARGURA
-     (grid-template-columns em fr) é proporcional a quantas colunas
-     internas de nomes aquele canal precisa pra caber numa altura de linha
-     confortável e IGUAL pra todo mundo (ROWH). Mede a altura real
-     disponível no cartão (nunca chuta um número fixo), então continua
-     funcionando não importa quantos vendedores existam daqui a 1 ano.
-     Se nem 3 colunas bastam (time enorme), mostra o que cabe e resume o
-     resto numa linha só — nunca corta um nome no meio. */
-  var ROWH = 46, ROWGAP = 6;
-
-  function calcularZona(itens, alturaDisp){
-    var n = itens.length;
-    var linhasCabem = Math.max(1, Math.floor((alturaDisp + ROWGAP) / (ROWH + ROWGAP)));
-    for (var k = 1; k <= 3; k++){
-      if (Math.ceil(n / k) <= linhasCabem) return { k: k, mostrar: itens, resumo: null };
-    }
-    var cabem = linhasCabem * 3;
-    var mostrar = itens.slice(0, Math.max(0, cabem - 1));
-    var resto = itens.slice(mostrar.length);
-    return {
-      k: 3, mostrar: mostrar,
-      resumo: resto.length ? { qtd: resto.length, valor: resto.reduce(function(s,p){ return s+(p.valor||0); }, 0) } : null
-    };
-  }
-
-  function zonaHTML(nome, itens, r){
-    var nOk = itens.filter(bateu).length;
-    var h = '<ul class="colunas c'+r.k+'" style="--rowh:'+ROWH+'px">';
-    r.mostrar.forEach(function(p,i){
-      var ok = bateu(p);
+  /* ---------- Ranking (top 4) ----------
+     Cada linha: nome · vendido / meta · barra (vendido ÷ meta) · %
+     Quem bateu a meta ganha selo ✓ e fica verde. Recebe só os primeiros
+     N itens (render() já manda o array cortado) — o rótulo da seção avisa
+     que é top 4, e o contador "X/Y na meta" conta o CANAL INTEIRO, não só
+     os 4 mostrados. */
+  function lista(itens){
+    itens = itens || [];
+    if (!itens.length) return '<ul class="lb"></ul>';
+    var h = '<ul class="lb">';
+    itens.forEach(function(p,i){
+      var pc = pctVend(p), ok = bateu(p);
       var cls = (i===0 && (p.valor||0)>0) ? 'p1' : '';
       if (!(p.valor>0)) cls += ' zero';
       if (ok) cls += ' ok';
       h += '<li class="'+cls+'">'+
         '<div class="av">'+esc(inic(p.nome))+'</div>'+
-        '<div class="li-mid">'+
-          '<span class="li-nome">'+esc(p.nome)+(ok ? '<span class="ok-badge">&#10003;</span>' : '')+'</span>'+
-          '<span class="li-val">'+brl(p.valor)+'</span>'+
+        '<div class="lb-mid">'+
+          '<div class="lb-row">'+
+            '<span class="lb-name">'+esc(p.nome)+
+              (ok ? '<span class="ok-badge">&#10003;</span>' : '')+'</span>'+
+            '<span class="lb-val">'+brl(p.valor)+
+              '<span class="m"> / '+abrev(p.meta)+'</span></span>'+
+          '</div>'+
+          '<div class="lb-bot">'+
+            '<div class="lb-bar"><i style="width:'+cap(pc).toFixed(1)+'%"></i></div>'+
+            '<span class="lb-pct">'+p0(pc)+'</span>'+
+          '</div>'+
         '</div></li>';
     });
-    if (r.resumo){
-      h += '<div class="resumo-linha" style="height:'+ROWH+'px">'+
-        '<span>+ <b>'+r.resumo.qtd+'</b> vendedores</span>'+
-        '<span class="valor">'+brl(r.resumo.valor)+'</span></div>';
-    }
-    h += '</ul>';
-    return '<div class="zona">'+
-      '<div class="zona-head"><span class="zona-nome">'+esc(nome)+
-        '<span> · '+itens.length+' pessoas · '+r.k+' '+(r.k>1?'colunas':'coluna')+'</span></span>'+
-        '<span class="zona-ok'+(nOk?'':' off')+'">'+nOk+'/'+itens.length+'</span></div>'+
-      h+
-    '</div>';
+    return h+'</ul>';
   }
 
-  function montarZonas(canais){
-    var zonasEl = document.getElementById('zonas');
-    if (!zonasEl) return;
-    var alturaDisp = zonasEl.clientHeight;   // espaço real, medido, não chutado
-    var calc = canais.map(function(c){ return { c: c, r: calcularZona(c.vendedores||[], alturaDisp) }; });
-    zonasEl.style.gridTemplateColumns = calc.map(function(x){ return x.r.k+'fr'; }).join(' ');
-    zonasEl.innerHTML = calc.map(function(x){ return zonaHTML(x.c.nome, x.c.vendedores||[], x.r); }).join('');
+  /* ---------- Tela de trás: detalhe por vendedor ----------
+     Por pessoa: % da meta, meta, falta, falta/dia, média/dia e projeção
+     (linear, mesma lógica do canal, só que por indivíduo). Igual à faixa
+     de ranking: mede a altura REAL disponível a cada render (nunca chuta
+     um número), calcula a altura de linha pro grupo inteiro caber, e se
+     nem assim couber tudo (time enorme), resume o resto numa linha —
+     nunca corta um nome no meio. */
+  var VROWMIN = 54, VROWMAX = 100, VGAP = 6;
+
+  function vlistaVendedor(itens, dias, disponivel){
+    itens = itens || [];
+    if (!itens.length) return '<div class="vlista-vazia">Sem detalhamento neste mês</div>';
+
+    var trabalhados = (dias && dias.trabalhados) || 0;
+    var faltantes   = (dias && dias.faltantes)   || 0;
+    var totalDias   = (dias && dias.total)       || 0;
+
+    var cabem = Math.max(1, Math.floor((disponivel + VGAP) / (VROWMIN + VGAP)));
+    var mostrar = itens, resumo = null;
+    if (itens.length > cabem){
+      mostrar = itens.slice(0, Math.max(1, cabem - 1));
+      var resto = itens.slice(mostrar.length);
+      resumo = { qtd: resto.length };
+    }
+    var alturaIdeal = (disponivel - VGAP*(mostrar.length-1)) / mostrar.length;
+    var rowh = Math.max(VROWMIN, Math.min(VROWMAX, alturaIdeal));
+
+    var h = '<ul class="vlista" style="gap:'+VGAP+'px">';
+    mostrar.forEach(function(p){
+      var falta     = Math.max(0, (p.meta||0) - (p.valor||0));
+      var mediaDia  = trabalhados > 0 ? (p.valor||0)/trabalhados : 0;
+      var faltaDia  = faltantes   > 0 ? falta/faltantes : 0;
+      var projecao  = mediaDia * totalDias;
+      var projPct   = p.meta > 0 ? projecao/p.meta*100 : 0;
+      var ok = bateu(p);
+      h += '<li class="'+(ok?'v-ok':'')+'" style="height:'+rowh.toFixed(1)+'px">'+
+        '<div class="v-row1">'+
+          '<span class="v-nome">'+esc(p.nome)+(ok ? '<span class="v-badge">&#10003;</span>' : '')+'</span>'+
+          '<span class="v-pct">'+p0(pctVend(p))+'</span>'+
+        '</div>'+
+        '<div class="v-row2">'+
+          '<span class="v-stat">Meta <b>'+abrev(p.meta)+'</b></span>'+
+          '<span class="v-stat falta">Falta <b>'+(falta>0 ? abrev(falta) : '—')+'</b></span>'+
+          '<span class="v-stat">Falta/dia <b>'+(faltantes>0 && falta>0 ? abrev(faltaDia) : '—')+'</b></span>'+
+          '<span class="v-stat">Média/dia <b>'+abrev(mediaDia)+'</b></span>'+
+          '<span class="v-stat">Projeção <b>'+p0(projPct)+'</b></span>'+
+        '</div></li>';
+    });
+    h += '</ul>';
+    if (resumo){
+      h += '<div class="v-resumo"><span>+ <b>'+resumo.qtd+'</b> vendedores não exibidos aqui</span></div>';
+    }
+    return h;
+  }
+
+  function montarVdet(canais){
+    /* 1a passada: cabeçalho de cada zona + um "holder" vazio, só pra medir
+       de verdade quanto espaço sobra pra lista antes de decidir o tamanho
+       das linhas */
+    canais.forEach(function(c,i){
+      var el = document.getElementById('v'+i);
+      if (!el) return;
+      var nOk = (c.vendedores||[]).filter(bateu).length;
+      var total = (c.vendedores||[]).length;
+      el.innerHTML =
+        '<div class="vzona-head"><span class="vzona-nome">'+esc(c.nome)+'</span>'+
+          '<span class="vzona-ok'+(nOk?'':' off')+'">'+nOk+'/'+total+' na meta</span></div>'+
+        '<div class="vlista-holder" id="vh'+i+'"></div>';
+    });
+    /* 2a passada: mede o espaço real (pós-layout) e preenche a lista */
+    canais.forEach(function(c,i){
+      var holder = document.getElementById('vh'+i);
+      if (!holder) return;
+      holder.innerHTML = vlistaVendedor(c.vendedores||[], c.dias, holder.clientHeight);
+    });
   }
 
   /* ---------- Rodapé de ritmo do canal ---------- */
@@ -735,10 +940,13 @@
     set('p-falta', falta>0 ? 'faltam '+abrev(falta) : 'meta do mês batida');
 
     var canais = d.canais || [];
+    var TOPN = 4;
 
     canais.forEach(function(c,i){
-      var el = document.getElementById('head'+i);
+      var el = document.getElementById('c'+i);
       if(!el) return;
+      var vend = c.vendedores || [];
+      var nOk  = vend.filter(bateu).length;
       var metaOk = (c.falta || 0) <= 0;
 
       el.innerHTML =
@@ -751,13 +959,17 @@
           '<span>projetado <b>'+p0(c.projecao_pct)+'</b></span></div>'+
         '<div class="c-track"><i class="'+(metaOk?'ok':'')+'" style="width:'+
           cap(c.pct_meta).toFixed(1)+'%"></i></div>'+
-        /* ritmo — completo, igual sempre foi */
+        /* ranking — só top 4, mas o contador conta o canal inteiro */
+        '<div class="sec"><span class="t">Top 4 vendedores</span>'+
+          '<span class="s'+(nOk?'':' off')+'">'+nOk+'/'+vend.length+
+          '<span>na meta</span></span></div>'+
+        lista(vend.slice(0, TOPN))+
+        /* ritmo, ancorado no pé */
         ritmo(c, i, d.conversao);
     });
 
-    /* ranking: faixa única embaixo, largura de cada zona proporcional a
-       quantas colunas de nomes aquele canal precisa (ver montarZonas) */
-    montarZonas(canais);
+    /* tela de trás: detalhe por vendedor (todo mundo, não só o top 4) */
+    montarVdet(canais);
 
     set('stamp', 'planilha GERAL 2026 · '+
       (d.atualizado_em ? new Date(d.atualizado_em).toLocaleTimeString('pt-BR') : '—') +
