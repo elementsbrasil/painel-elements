@@ -119,10 +119,13 @@
 
   /* marca — logo oficial em PNG + frase como "linha 2" da mesma marca, não
      uma legenda solta: mesmo halo pulsando (aplicado no .brand inteiro, não
-     em cada peça separada) e um único raio de brilho que varre a logo
-     primeiro e depois desce e varre a frase, letra por letra, no mesmo
-     ciclo de 6s. */
-  .brand{ text-align:center; padding:0 54px;
+     em cada peça separada) e o MESMO raio de brilho passando pela logo e
+     pela frase ao mesmo tempo (não mais sequencial). display:flex column
+     aqui é o que garante a frase ficar EMBAIXO da logo, e não do lado —
+     sem isso os dois, sendo inline-block, ficavam lado a lado quando
+     cabiam na mesma linha. */
+  .brand{ display:flex; flex-direction:column; align-items:center;
+    text-align:center; padding:0 54px;
     animation: logoPulse 3.4s ease-in-out infinite; }
   .brand .logo-wrap{ position:relative; display:inline-block; }
   .brand .logo-wrap .logo-img{ display:block; height:42px; width:auto; }
@@ -137,18 +140,19 @@
     mask-repeat:no-repeat; mask-position:center;
     background-size:280% 100%; background-position:150% 0;
     filter: blur(1.4px) saturate(1.35);
-    animation: logoShineSeq 12s ease-in-out infinite;
+    animation: holoShine 12s ease-in-out infinite;
     pointer-events:none;
   }
   @keyframes logoPulse{
     0%, 100% { filter: drop-shadow(0 0 5px rgba(180,124,255,.20)) drop-shadow(0 0 0px rgba(111,0,255,0)); transform:scale(1); }
     50%      { filter: drop-shadow(0 0 20px rgba(180,124,255,.7)) drop-shadow(0 0 34px rgba(111,0,255,.35)); transform:scale(1.008); }
   }
-  /* logo varre nos primeiros 40% do ciclo, depois fica "apagada" até o loop reiniciar */
-  @keyframes logoShineSeq{
+  /* sweep lento (~35% do ciclo de 12s = ~4,2s), compartilhado pela logo E
+     pela frase — ambas usam esta mesma animação, então passam juntas */
+  @keyframes holoShine{
     0%   { background-position:150% 0; }
-    28%  { background-position:150% 0; }
-    58%  { background-position:-50% 0; }
+    30%  { background-position:150% 0; }
+    65%  { background-position:-50% 0; }
     100% { background-position:-50% 0; }
   }
   /* mesma família/caixa-alta/tracking dos rótulos do painel (.eyebrow),
@@ -165,16 +169,8 @@
       rgba(180,124,255,.95) 68%, transparent 82%);
     background-size:280% 100%; background-position:150% 0;
     filter: blur(.6px) saturate(1.35);
-    animation: textShineSeq 12s ease-in-out infinite;
+    animation: holoShine 12s ease-in-out infinite;
     pointer-events:none;
-  }
-  /* a frase varre de 45% a 75% do MESMO ciclo — começa só depois que a
-     logo termina, dando a sensação de um raio só descendo de um pro outro */
-  @keyframes textShineSeq{
-    0%   { background-position:150% 0; }
-    66%  { background-position:150% 0; }
-    92%  { background-position:-50% 0; }
-    100% { background-position:-50% 0; }
   }
 
   .proj{ text-align:right; }
@@ -187,130 +183,138 @@
   .proj .sub{ font-size:15px; color:var(--muted); margin-top:6px; }
   .proj .sub b{ color:var(--ink2); font-weight:600; }
 
-  /* ============ 3 CARTÕES · UM POR CANAL ============ */
-  .canais{
-    display:grid; grid-template-columns:repeat(3,1fr);
-    gap:20px; padding:0 30px 24px; min-height:0;
-  }
-  .canal{
-    display:flex; flex-direction:column; min-height:0;
-    padding:22px 26px 20px;
-    border-radius:22px;
+  /* ============ TOPO: 3 CABEÇALHOS IGUAIS + FAIXA DE RANKING COMPARTILHADA ============
+     Antes cada canal era um cartão só (header+lista+ritmo empilhados), e a
+     lista de vendedores — a ÚNICA parte que muda de tamanho mês a mês —
+     ficava presa numa largura de 1/3 fixa: sobrava espaço em quem tem pouca
+     gente (Revenda/Digital) e cortava quem tem muita (Corporativo).
+     Agora: os números + ritmo do canal (que NÃO variam de tamanho) formam
+     3 cabeçalhos iguais no topo. A lista vira uma faixa única embaixo,
+     dividida em zonas cuja LARGURA é proporcional a quantas colunas de
+     nomes aquele canal precisa — quem tem pouca gente cede largura pra
+     quem tem muita, sem encolher fonte nem cortar ninguém. */
+  .mid{ display:flex; flex-direction:column; gap:16px; min-height:0;
+    padding:0 30px 24px; }
+
+  .heads{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; flex-shrink:0; }
+  .head-card{
+    padding:20px 26px; border-radius:22px;
     border:1px solid var(--card-brd);
-    background:linear-gradient(180deg,var(--card-bg1) 0%,var(--card-bg2) 42%,
-      rgba(255,255,255,.006) 100%);
+    background:linear-gradient(180deg,var(--card-bg1) 0%,var(--card-bg2) 100%);
     position:relative; overflow:hidden;
   }
-  /* fio de luz no topo do cartão: dá borda superior sem "moldura" pesada */
-  .canal::before{
+  .head-card::before{
     content:''; position:absolute; top:0; left:9%; right:9%; height:1px;
     background:linear-gradient(90deg,transparent,rgba(180,124,255,.55),transparent);
   }
 
   /* --- cabeçalho do cartão --- */
-  .c-head{ display:flex; align-items:baseline; justify-content:space-between;
-    gap:14px; flex-shrink:0; }
+  .c-head{ display:flex; align-items:baseline; justify-content:space-between; gap:14px; }
   .c-nome{ font-family:'Red Hat Display'; font-weight:700; color:#fff;
-    font-size:29px; letter-spacing:.005em; line-height:1; }
+    font-size:26px; letter-spacing:.005em; line-height:1; }
   .c-pct{ font-family:'Red Hat Display'; font-weight:800; color:var(--lilac);
-    font-size:31px; line-height:1; }
+    font-size:28px; line-height:1; }
 
   /* --- números do mês --- */
   .c-val{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
-    font-size:43px; line-height:1; margin-top:13px; flex-shrink:0; }
+    font-size:38px; line-height:1; margin-top:11px; }
   .c-val .cur{ font-size:.42em; color:var(--muted); margin-right:.14em;
     vertical-align:.32em; font-weight:700; }
-  .c-meta{ font-size:15px; color:var(--muted); margin-top:7px; flex-shrink:0;
+  .c-meta{ font-size:14px; color:var(--muted); margin-top:6px;
     display:flex; justify-content:space-between; gap:12px; }
   .c-meta b{ color:var(--ink2); font-weight:600; }
-  .c-track{ height:7px; background:var(--trilho); border-radius:5px;
-    overflow:hidden; margin-top:11px; flex-shrink:0; }
+  .c-track{ height:6px; background:var(--trilho); border-radius:5px;
+    overflow:hidden; margin-top:10px; }
   .c-track i{ display:block; height:100%; border-radius:5px;
     background:linear-gradient(90deg,var(--purple),var(--lilac2)); }
   .c-track i.ok{ background:linear-gradient(90deg,#1E9E5C,var(--green)); }
 
-  /* --- rótulo de seção (interno ao cartão) --- */
-  .sec{ display:flex; align-items:baseline; justify-content:space-between;
-    gap:12px; flex-shrink:0; margin-top:20px; padding-top:15px;
-    border-top:1px solid var(--hair); }
-  .sec .t{ font-size:12px; letter-spacing:.19em; text-transform:uppercase;
-    color:var(--muted); font-weight:600; }
-  .sec .s{ font-family:'Red Hat Display'; font-weight:800; font-size:18px;
-    color:var(--green); line-height:1; }
-  .sec .s.off{ color:var(--muted2); }
-  .sec .s span{ font-family:'Outfit'; font-weight:400; font-size:11px;
-    letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-left:5px; }
-
-  /* --- ranking completo ---
-     Linhas com altura MÍNIMA fixa e MÁXIMA travada: onde há poucos vendedores
-     (Revenda, Digital) elas crescem um pouco e param, em vez de esticarem até
-     ocupar a coluna inteira. Era isso que deixava as três colunas com ritmos
-     visuais diferentes. A lista fica CENTRADA na altura livre e o rodapé
-     ancorado no pé — então a sobra vira respiro em cima E embaixo (leitura de
-     bloco centrado) em vez de um buraco só no fim do cartão, e os três
-     rodapés continuam alinhados na mesma altura. */
-  .lb{ list-style:none; display:flex; flex-direction:column;
-    justify-content:center; gap:4px; margin-top:11px;
-    flex:1 1 auto; min-height:0; overflow:hidden; }
-  .lb li{ display:flex; align-items:center; gap:12px;
-    flex:1 1 auto; min-height:44px; max-height:72px; }
-  .av{ width:36px; height:36px; border-radius:50%; background:rgba(111,0,255,.14);
-    border:1px solid rgba(111,0,255,.42); flex-shrink:0; display:flex;
-    align-items:center; justify-content:center; font-family:'Red Hat Display';
-    font-weight:700; color:var(--lilac); font-size:14px; letter-spacing:.02em; }
-  .lb li.p1 .av{ background:linear-gradient(135deg,var(--purple),var(--lilac2));
-    color:#fff; border:none; box-shadow:0 0 14px rgba(111,0,255,.5); }
-  .lb-mid{ flex:1; min-width:0; }
-  .lb-row{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
-  .lb-name{ font-weight:400; color:#fff; font-size:20px; line-height:1.15;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .lb li.p1 .lb-name{ font-weight:600; }
-  .lb-val{ font-family:'Red Hat Display'; font-weight:700; color:#fff;
-    font-size:18px; line-height:1.15; flex-shrink:0; white-space:nowrap; }
-  .lb-val .m{ color:var(--muted); font-weight:400; font-size:.82em; }
-  .lb-bot{ display:flex; align-items:center; gap:10px; margin-top:5px; }
-  .lb-bar{ flex:1; min-width:0; height:5px; background:var(--trilho);
-    border-radius:4px; overflow:hidden; }
-  .lb-bar i{ display:block; height:100%; border-radius:4px;
-    background:linear-gradient(90deg,var(--purple),var(--lilac2)); }
-  .lb-pct{ font-family:'Red Hat Display'; font-weight:700; font-size:16px;
-    line-height:1; color:var(--lilac); flex-shrink:0; min-width:3.1em; text-align:right; }
-  .lb li.zero .lb-name, .lb li.zero .lb-val{ color:var(--muted2); }
-  .lb li.zero .lb-pct{ color:var(--muted2); }
-
-  /* bateu a meta: selo ✓ + barra e % em verde.
-     O verde nunca significa outra coisa no painel, e nunca vem sozinho —
-     sempre acompanhado do ✓, pra não depender de cor. */
-  .ok-badge{ display:inline-flex; align-items:center; justify-content:center;
-    width:19px; height:19px; border-radius:50%; margin-left:8px;
-    background:rgba(67,224,138,.16); border:1px solid rgba(67,224,138,.55);
-    color:var(--green); font-size:11px; font-weight:700; line-height:1;
-    vertical-align:middle; }
-  .lb li.ok .lb-bar i{ background:linear-gradient(90deg,#1E9E5C,var(--green)); }
-  .lb li.ok .lb-pct{ color:var(--green); }
-  .lb li.ok .av{ border-color:rgba(67,224,138,.55); color:var(--green);
-    background:rgba(67,224,138,.12); box-shadow:none; }
-  .lb li.p1.ok .av{ background:linear-gradient(135deg,#7CF0B6,#1E9E5C);
-    color:#04140C; box-shadow:0 0 14px rgba(67,224,138,.45); }
-
-  /* --- rodapé de ritmo, ancorado no pé do cartão --- */
-  .ritmo{ margin-top:auto; padding-top:16px; border-top:1px solid var(--hair);
-    flex-shrink:0; }
-  .ritmo-lab{ font-size:12px; letter-spacing:.19em; text-transform:uppercase;
-    color:var(--muted); font-weight:600; margin-bottom:13px; }
-  .indgrid{ display:grid; grid-template-columns:1fr 1fr; gap:15px 22px; }
+  /* --- ritmo do canal: igual de sempre, só que agora dentro do cabeçalho
+     (não precisa mais de margin-top:auto — o cartão não estica mais pra
+     preencher a altura toda, o conteúdo é que define a altura dele) --- */
+  .ritmo{ margin-top:16px; padding-top:15px; border-top:1px solid var(--hair); }
+  .ritmo-lab{ font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; margin-bottom:12px; }
+  .indgrid{ display:grid; grid-template-columns:1fr 1fr; gap:13px 20px; }
   .ind{ min-width:0; }
   .ind .v{ font-family:'Red Hat Display'; font-weight:800; color:#fff;
-    font-size:33px; line-height:1; letter-spacing:-.01em; white-space:nowrap; }
+    font-size:27px; line-height:1; letter-spacing:-.01em; white-space:nowrap; }
   .ind .v .cur{ font-size:.44em; color:var(--muted); font-weight:700;
     margin-right:.1em; vertical-align:.2em; }
   .ind .v.accent{ color:var(--lilac); }
   .ind .v.green{ color:var(--green); }
-  .ind .l{ font-size:12px; letter-spacing:.13em; text-transform:uppercase;
-    color:var(--muted); margin-top:7px; }
-  .ind .sub{ font-size:12px; color:var(--muted2); margin-top:4px; }
+  .ind .l{ font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); margin-top:6px; }
+  .ind .sub{ font-size:11px; color:var(--muted2); margin-top:3px; }
   .ind .sub b{ color:var(--muted); font-weight:500; }
   .ind .sub b.ok{ color:var(--green); }
+
+  /* --- faixa única de ranking --- */
+  .rankwrap{
+    flex:1 1 auto; min-height:0; display:flex; flex-direction:column;
+    padding:20px 26px; border-radius:22px;
+    border:1px solid var(--card-brd);
+    background:linear-gradient(180deg,var(--card-bg1) 0%,var(--card-bg2) 42%,
+      rgba(255,255,255,.006) 100%);
+    position:relative; overflow:hidden;
+  }
+  .rankwrap::before{
+    content:''; position:absolute; top:0; left:5%; right:5%; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(180,124,255,.55),transparent);
+  }
+  .rank-titulo{ font-size:12px; letter-spacing:.19em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; flex-shrink:0; margin-bottom:14px; }
+  .zonas{ display:grid; gap:0; flex:1; min-height:0; }
+  .zona{ min-width:0; padding:0 22px; display:flex; flex-direction:column; min-height:0; }
+  .zona + .zona{ border-left:1px solid var(--hair); }
+  .zona:first-child{ padding-left:0; }
+  .zona-head{ display:flex; align-items:baseline; justify-content:space-between;
+    flex-shrink:0; margin-bottom:9px; }
+  .zona-nome{ font-family:'Red Hat Display'; font-weight:700; color:#fff; font-size:16px; }
+  .zona-nome span{ font-family:'Outfit'; font-weight:400; color:var(--muted);
+    font-size:11px; margin-left:7px; text-transform:none; letter-spacing:0; }
+  .zona-ok{ font-family:'Red Hat Display'; font-weight:800; font-size:14px; color:var(--green); }
+  .zona-ok.off{ color:var(--muted2); }
+
+  .colunas{ list-style:none; margin:0; padding:0; flex:1; min-height:0; column-gap:20px; }
+  .colunas.c1{ column-count:1; }
+  .colunas.c2{ column-count:2; }
+  .colunas.c3{ column-count:3; }
+  .colunas li{ break-inside:avoid; display:flex; align-items:center; gap:10px;
+    height:var(--rowh,46px); }
+  .av{ width:32px; height:32px; border-radius:50%; background:rgba(111,0,255,.14);
+    border:1px solid rgba(111,0,255,.42); flex-shrink:0; display:flex;
+    align-items:center; justify-content:center; font-family:'Red Hat Display';
+    font-weight:700; color:var(--lilac); font-size:12px; letter-spacing:.02em; }
+  .colunas li.p1 .av{ background:linear-gradient(135deg,var(--purple),var(--lilac2));
+    color:#fff; border:none; box-shadow:0 0 12px rgba(111,0,255,.5); }
+  .li-mid{ flex:1; min-width:0; display:flex; align-items:baseline;
+    justify-content:space-between; gap:10px; }
+  .li-nome{ font-size:15px; color:#fff; line-height:1.15; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; }
+  .colunas li.p1 .li-nome{ font-weight:600; }
+  .li-val{ font-family:'Red Hat Display'; font-weight:700; font-size:14px;
+    color:#fff; flex-shrink:0; white-space:nowrap; }
+  .li-val .m{ color:var(--muted); font-weight:400; font-size:.82em; }
+  .colunas li.zero .li-nome, .colunas li.zero .li-val{ color:var(--muted2); }
+  .colunas li.ok .li-val{ color:var(--green); }
+
+  .ok-badge{ display:inline-flex; align-items:center; justify-content:center;
+    width:17px; height:17px; border-radius:50%; margin-left:7px;
+    background:rgba(67,224,138,.16); border:1px solid rgba(67,224,138,.55);
+    color:var(--green); font-size:10px; font-weight:700; line-height:1;
+    vertical-align:middle; }
+  .colunas li.ok .av{ border-color:rgba(67,224,138,.55); color:var(--green);
+    background:rgba(67,224,138,.12); box-shadow:none; }
+  .colunas li.p1.ok .av{ background:linear-gradient(135deg,#7CF0B6,#1E9E5C);
+    color:#04140C; box-shadow:0 0 12px rgba(67,224,138,.45); }
+
+  /* linha-resumo quando nem 3 colunas bastam pra caber todo mundo */
+  .resumo-linha{ break-inside:avoid; display:flex; align-items:center;
+    justify-content:space-between; height:var(--rowh,46px); color:var(--muted);
+    font-size:14px; border-top:1px dashed var(--hair); }
+  .resumo-linha b{ color:var(--lilac2); }
+  .resumo-linha .valor{ font-family:'Red Hat Display'; font-weight:700; color:var(--ink2); }
 
   /* ============ Botão de tela cheia ============ */
   .fsbtn{ position:fixed; top:14px; right:14px; z-index:80;
@@ -389,11 +393,17 @@
     </div>
   </div>
 
-  <!-- ===== 3 CARTÕES · UM POR CANAL ===== -->
-  <div class="canais">
-    <div class="canal" id="c0"></div>
-    <div class="canal" id="c1"></div>
-    <div class="canal" id="c2"></div>
+  <!-- ===== 3 CABEÇALHOS + FAIXA DE RANKING COMPARTILHADA ===== -->
+  <div class="mid">
+    <div class="heads">
+      <div class="head-card" id="head0"></div>
+      <div class="head-card" id="head1"></div>
+      <div class="head-card" id="head2"></div>
+    </div>
+    <div class="rankwrap">
+      <div class="rank-titulo">Ranking de vendedores por canal</div>
+      <div class="zonas" id="zonas"></div>
+    </div>
   </div>
 
 </div>
@@ -593,34 +603,70 @@
     return p.meta > 0 && (p.valor||0) >= p.meta;
   }
 
-  /* ---------- Ranking COMPLETO de vendedores ----------
-     Cada linha: nome · vendido / meta · barra (vendido ÷ meta) · %
-     Quem bateu a meta ganha selo ✓ e fica verde. */
-  function lista(itens){
-    itens = itens || [];
-    if (!itens.length) return '<ul class="lb"></ul>';
-    var h = '<ul class="lb">';
-    itens.forEach(function(p,i){
-      var pc = pctVend(p), ok = bateu(p);
+  /* ---------- Faixa de ranking: zonas com largura proporcional ----------
+     A única coisa que muda de tamanho mês a mês é a QUANTIDADE de
+     vendedores por canal — os números e o ritmo do canal não. Por isso só
+     o ranking vira uma faixa única, dividida em zonas cuja LARGURA
+     (grid-template-columns em fr) é proporcional a quantas colunas
+     internas de nomes aquele canal precisa pra caber numa altura de linha
+     confortável e IGUAL pra todo mundo (ROWH). Mede a altura real
+     disponível no cartão (nunca chuta um número fixo), então continua
+     funcionando não importa quantos vendedores existam daqui a 1 ano.
+     Se nem 3 colunas bastam (time enorme), mostra o que cabe e resume o
+     resto numa linha só — nunca corta um nome no meio. */
+  var ROWH = 46, ROWGAP = 6;
+
+  function calcularZona(itens, alturaDisp){
+    var n = itens.length;
+    var linhasCabem = Math.max(1, Math.floor((alturaDisp + ROWGAP) / (ROWH + ROWGAP)));
+    for (var k = 1; k <= 3; k++){
+      if (Math.ceil(n / k) <= linhasCabem) return { k: k, mostrar: itens, resumo: null };
+    }
+    var cabem = linhasCabem * 3;
+    var mostrar = itens.slice(0, Math.max(0, cabem - 1));
+    var resto = itens.slice(mostrar.length);
+    return {
+      k: 3, mostrar: mostrar,
+      resumo: resto.length ? { qtd: resto.length, valor: resto.reduce(function(s,p){ return s+(p.valor||0); }, 0) } : null
+    };
+  }
+
+  function zonaHTML(nome, itens, r){
+    var nOk = itens.filter(bateu).length;
+    var h = '<ul class="colunas c'+r.k+'" style="--rowh:'+ROWH+'px">';
+    r.mostrar.forEach(function(p,i){
+      var ok = bateu(p);
       var cls = (i===0 && (p.valor||0)>0) ? 'p1' : '';
       if (!(p.valor>0)) cls += ' zero';
       if (ok) cls += ' ok';
       h += '<li class="'+cls+'">'+
         '<div class="av">'+esc(inic(p.nome))+'</div>'+
-        '<div class="lb-mid">'+
-          '<div class="lb-row">'+
-            '<span class="lb-name">'+esc(p.nome)+
-              (ok ? '<span class="ok-badge">&#10003;</span>' : '')+'</span>'+
-            '<span class="lb-val">'+brl(p.valor)+
-              '<span class="m"> / '+abrev(p.meta)+'</span></span>'+
-          '</div>'+
-          '<div class="lb-bot">'+
-            '<div class="lb-bar"><i style="width:'+cap(pc).toFixed(1)+'%"></i></div>'+
-            '<span class="lb-pct">'+p0(pc)+'</span>'+
-          '</div>'+
+        '<div class="li-mid">'+
+          '<span class="li-nome">'+esc(p.nome)+(ok ? '<span class="ok-badge">&#10003;</span>' : '')+'</span>'+
+          '<span class="li-val">'+brl(p.valor)+'</span>'+
         '</div></li>';
     });
-    return h+'</ul>';
+    if (r.resumo){
+      h += '<div class="resumo-linha" style="height:'+ROWH+'px">'+
+        '<span>+ <b>'+r.resumo.qtd+'</b> vendedores</span>'+
+        '<span class="valor">'+brl(r.resumo.valor)+'</span></div>';
+    }
+    h += '</ul>';
+    return '<div class="zona">'+
+      '<div class="zona-head"><span class="zona-nome">'+esc(nome)+
+        '<span> · '+itens.length+' pessoas · '+r.k+' '+(r.k>1?'colunas':'coluna')+'</span></span>'+
+        '<span class="zona-ok'+(nOk?'':' off')+'">'+nOk+'/'+itens.length+'</span></div>'+
+      h+
+    '</div>';
+  }
+
+  function montarZonas(canais){
+    var zonasEl = document.getElementById('zonas');
+    if (!zonasEl) return;
+    var alturaDisp = zonasEl.clientHeight;   // espaço real, medido, não chutado
+    var calc = canais.map(function(c){ return { c: c, r: calcularZona(c.vendedores||[], alturaDisp) }; });
+    zonasEl.style.gridTemplateColumns = calc.map(function(x){ return x.r.k+'fr'; }).join(' ');
+    zonasEl.innerHTML = calc.map(function(x){ return zonaHTML(x.c.nome, x.c.vendedores||[], x.r); }).join('');
   }
 
   /* ---------- Rodapé de ritmo do canal ---------- */
@@ -689,13 +735,10 @@
     set('p-falta', falta>0 ? 'faltam '+abrev(falta) : 'meta do mês batida');
 
     var canais = d.canais || [];
-    var rotulos = ['Ranking de vendedores','Ranking de vendedores','Composição do canal'];
 
     canais.forEach(function(c,i){
-      var el = document.getElementById('c'+i);
+      var el = document.getElementById('head'+i);
       if(!el) return;
-      var vend = c.vendedores || [];
-      var nOk  = vend.filter(bateu).length;
       var metaOk = (c.falta || 0) <= 0;
 
       el.innerHTML =
@@ -708,14 +751,13 @@
           '<span>projetado <b>'+p0(c.projecao_pct)+'</b></span></div>'+
         '<div class="c-track"><i class="'+(metaOk?'ok':'')+'" style="width:'+
           cap(c.pct_meta).toFixed(1)+'%"></i></div>'+
-        /* ranking */
-        '<div class="sec"><span class="t">'+esc(rotulos[i])+'</span>'+
-          '<span class="s'+(nOk?'':' off')+'">'+nOk+'/'+vend.length+
-          '<span>na meta</span></span></div>'+
-        lista(vend)+
-        /* ritmo, ancorado no pé */
+        /* ritmo — completo, igual sempre foi */
         ritmo(c, i, d.conversao);
     });
+
+    /* ranking: faixa única embaixo, largura de cada zona proporcional a
+       quantas colunas de nomes aquele canal precisa (ver montarZonas) */
+    montarZonas(canais);
 
     set('stamp', 'planilha GERAL 2026 · '+
       (d.atualizado_em ? new Date(d.atualizado_em).toLocaleTimeString('pt-BR') : '—') +
