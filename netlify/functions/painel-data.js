@@ -67,10 +67,15 @@ const RANGE_MES = "A1:N60";
 //   b2c -> dias       · trabalhados       · faltantes
 // regexBloco/regexResumo localizam o canal pelo texto, não pela linha.
 // linhaCanal/vendIni/vendFim ficam só como rede de segurança (fallback).
+// regexResumo casa o rótulo da tabela-resumo (coluna H) — INDEPENDENTE do
+// nome de exibição, porque a planilha já usou rótulos diferentes pro mesmo
+// canal em épocas diferentes (3o canal era "B2C" até julho/2026, virou
+// "Digital" a partir de agosto/2026). Sempre que a planilha renomear de
+// novo, é só adicionar o sinônimo aqui — nenhum endereço muda.
 const CANAIS = [
-  { nome: "Revenda",     codcencus: 10102001, regexBloco: /revenda/i,     linhaCanal: 3, vendIni: 13, vendFim: 18, histCols: ["G","H"], tipoDias: "b2b" },
-  { nome: "Corporativo", codcencus: 10102002, regexBloco: /corporativ/i,  linhaCanal: 4, vendIni: 21, vendFim: 28, histCols: ["L","M"], tipoDias: "b2b" },
-  { nome: "Digital",     codcencus: 10102003, regexBloco: /digital/i, linhaCanal: 5, vendIni: 31, vendFim: 34, histCols: ["Q","R"], tipoDias: "b2c" }
+  { nome: "Revenda",     codcencus: 10102001, regexResumo: /^revenda$/i,             regexBloco: /revenda/i,               linhaCanal: 3, vendIni: 13, vendFim: 18, histCols: ["G","H"], tipoDias: "b2b" },
+  { nome: "Corporativo", codcencus: 10102002, regexResumo: /^corporativ/i,           regexBloco: /corporativ/i,            linhaCanal: 4, vendIni: 21, vendFim: 28, histCols: ["L","M"], tipoDias: "b2b" },
+  { nome: "Digital",     codcencus: 10102003, regexResumo: /^(digital|b2c)$/i,       regexBloco: /digital|b2c/i,           linhaCanal: 5, vendIni: 31, vendFim: 34, histCols: ["Q","R"], tipoDias: "b2c" }
 ];
 
 // Teto de nomes por canal. O compacto mostra a lista inteira; quem corta é o
@@ -232,17 +237,37 @@ function lerVendedores(m, ini, fim) {
   return out.slice(0, MAX_VENDEDORES);
 }
 
-// Histórico mensal da aba Dashboard (range A4:S15 = Jan..Dez)
-function historico(mHist, colAting, colMeta, ateIdx) {
+// Histórico mensal da aba Dashboard. Cada canal é um bloco de 4 colunas
+// com um título na linha de cima ("REVENDA 2026", "CORPORATIVO 2026",
+// "DIGITAL 2026"/"B2C 2026"...) e "Mês | Atingido | Meta | %" logo abaixo.
+// Localiza o bloco pelo TÍTULO (aceita os mesmos sinônimos do resumo —
+// regexResumo), então nunca importa em que ordem os blocos estão nem se
+// alguém inseriu um bloco novo no meio. Só cai pro endereço fixo antigo
+// (histCols) se o título não for encontrado de jeito nenhum.
+function historico(mHist, cfg, ateIdx) {
   const ABREV = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
   const IDX = { A:0,B:1,C:2,D:3,E:4,F:5,G:6,H:7,I:8,J:9,K:10,L:11,M:12,N:13,O:14,P:15,Q:16,R:17,S:18 };
+
+  let colAting = null, colMeta = null;
+  const linhaTitulo = mHist[0] || [];               // linha 2 da planilha = títulos dos blocos
+  for (let c = 0; c < linhaTitulo.length; c++) {
+    const v = linhaTitulo[c];
+    if (typeof v !== "string") continue;
+    const semAno = v.trim().replace(/\s*20\d\d\s*$/, "");   // "REVENDA 2026" -> "REVENDA"
+    if (cfg.regexResumo.test(semAno)) { colAting = c + 1; colMeta = c + 2; break; }
+  }
+  const porLabel = colAting !== null;
+  if (!porLabel) { colAting = IDX[cfg.histCols[0]]; colMeta = IDX[cfg.histCols[1]]; }
+
   const out = [];
   for (let i = 0; i <= ateIdx && i < 12; i++) {
-    const a = num(cel(mHist, i, IDX[colAting]));
-    const m = num(cel(mHist, i, IDX[colMeta]));
+    const linha = 2 + i;   // linha 0 = título · linha 1 = "Mês/Atingido/Meta/%" · dados a partir daqui
+    const a = num(cel(mHist, linha, colAting));
+    const m = num(cel(mHist, linha, colMeta));
     if (!a && !m) continue;                // mês futuro, sem movimento
     out.push({ mes: ABREV[i], atingido: a, meta: m });
   }
+  out._porLabel = porLabel;   // diagnóstico, não vai pro JSON final
   return out;
 }
 
@@ -318,19 +343,26 @@ function montar(mMes, mHist, mesIdx) {
   const blocos = blocosDeVendedores(mMes);
 
   const canais = CANAIS.map(cfg => {
-    /* resumo do canal: linha em que a coluna H tem o nome do canal */
-    let lin = linhaDoRotulo(mMes, 7, new RegExp("^" + cfg.nome + "$", "i"));
+    /* resumo do canal: linha em que a coluna H tem o rótulo do canal
+       (aceita sinônimos — ver regexResumo em CANAIS) */
+    let lin = linhaDoRotulo(mMes, 7, cfg.regexResumo);
+    const resumoPorLabel = lin >= 0;
     if (lin < 0) lin = cfg.linhaCanal - 1;          // fallback histórico
 
     const realizado = num(cel(mMes, lin, 8));       // col I
     const falta     = num(cel(mMes, lin, 13));      // col N
     const d         = cfg.tipoDias === "b2c" ? dias.b2c : dias.b2b;
 
-    /* vendedores: bloco cujo título casa com o canal */
+    /* vendedores: bloco cujo título casa com o canal (aceita sinônimos —
+       ver regexBloco em CANAIS). Meses antigos (jan–jun/2026) têm TODO
+       mundo (Revenda+Corporativo+Digital) num único bloco sem cabeçalho
+       por canal — nesse caso não dá pra saber com segurança qual linha é
+       de qual canal, então a lista vem VAZIA em vez de chutar um intervalo
+       de linha fixo (foi chutar assim que causou o "B2C aparecendo onde é
+       Corporativo" da vez passada). Painel mostra "sem detalhamento" pro
+       mês, os números do resumo (realizado/meta/%) continuam corretos. */
     const bloco = blocos.find(b => cfg.regexBloco.test(b.titulo));
-    const vendedores = bloco
-      ? lerVendedores(mMes, bloco.cab + 1, bloco.fim)
-      : lerVendedores(mMes, cfg.vendIni - 1, cfg.vendFim);   // fallback
+    const vendedores = bloco ? lerVendedores(mMes, bloco.cab + 1, bloco.fim) : [];
 
     return {
       nome: cfg.nome,
@@ -343,10 +375,15 @@ function montar(mMes, mHist, mesIdx) {
       media_dia:    d.trabalhados > 0 ? realizado / d.trabalhados : 0,
       falta_dia:    d.faltantes   > 0 ? Math.max(0, falta) / d.faltantes : 0,
       dias:         { total: d.total, trabalhados: d.trabalhados, faltantes: d.faltantes },
-      historico:    historico(mHist, cfg.histCols[0], cfg.histCols[1], mesIdx),
+      historico:    historico(mHist, cfg, mesIdx),
       vendedores,
-      // diagnóstico: em que linha da planilha o bloco foi encontrado
-      _origem:      bloco ? { bloco: bloco.titulo, linha: bloco.cab + 1 } : { bloco: "fallback", linha: cfg.vendIni }
+      // diagnóstico: como cada pedaço foi localizado nesta consulta —
+      // útil pra saber, olhando o JSON, se algum rótulo mudou de novo
+      _origem: {
+        resumo:     resumoPorLabel ? "rotulo" : "fallback-linha-" + (lin + 1),
+        vendedores: bloco ? { modo: "rotulo", bloco: bloco.titulo, linha: bloco.cab + 1 }
+                           : { modo: "sem-bloco-identificado" }
+      }
     };
   });
   canais.forEach(c => { c.alcance_vs_previsto = c.projecao_pct; });
@@ -363,7 +400,10 @@ async function lerPlanilha(aba, mesIdx) {
   const token = await tokenGraph();
   const [mMes, mHist] = await Promise.all([
     lerRange(token, aba, RANGE_MES),
-    lerRange(token, "Dashboard", "A4:S15")
+    // A2:S15 (não A4:S15): a linha 2 tem os títulos dos blocos ("REVENDA
+    // 2026" etc.) — precisa dela pra localizar cada canal por rótulo.
+    // Linha 3 = cabeçalho "Mês/Atingido/Meta/%", dados a partir da linha 4.
+    lerRange(token, "Dashboard", "A2:S15")
   ]);
   return montar(mMes, mHist, mesIdx);
 }
@@ -419,3 +459,9 @@ function json(status, body) {
 }
 
 // Exportado só para teste local (não usado pela Netlify)
+if (typeof module !== "undefined" && module.exports) {
+  module.exports.montar = montar;
+  module.exports.historico = historico;
+  module.exports.linhaDoRotulo = linhaDoRotulo;
+  module.exports.CANAIS = CANAIS;
+}
