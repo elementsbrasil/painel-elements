@@ -48,19 +48,19 @@
 //  for renomeado o painel degrada para o comportamento antigo em vez de zerar.
 //  ===========================================================================
 // ============================================================================
-
+ 
 const GRAPH = "https://graph.microsoft.com/v1.0";
-
+ 
 // Nomes reais das abas em uso na planilha (não são os meses completos)
 const ABAS_POR_MES = [
   "JAN", "FEV", "MAR", "ABRIL", "MAIO", "JUNHO",
   "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
 ];
-
+ 
 // Faixa lida da aba do mês. Sobra folga de propósito: o bloco de vendedores
 // pode crescer com nomes novos sem precisar mexer aqui.
 const RANGE_MES = "A1:N60";
-
+ 
 // tipoDias define qual contagem de dias usar no cálculo de "média de vendas
 // por dia" e de "falta por dia" de cada canal:
 //   b2b -> dias úteis · trabalhados úteis · faltantes
@@ -77,11 +77,36 @@ const CANAIS = [
   { nome: "Corporativo", codcencus: 10102002, regexResumo: /^corporativ/i,           regexBloco: /corporativ/i,            linhaCanal: 4, vendIni: 21, vendFim: 28, histCols: ["L","M"], tipoDias: "b2b" },
   { nome: "Digital",     codcencus: 10102003, regexResumo: /^(digital|b2c)$/i,       regexBloco: /digital|b2c/i,           linhaCanal: 5, vendIni: 31, vendFim: 34, histCols: ["Q","R"], tipoDias: "b2c" }
 ];
-
+ 
 // Teto de nomes por canal. O compacto mostra a lista inteira; quem corta é o
 // front do index (LIMITE_RANK lá), não esta função.
 const MAX_VENDEDORES = 24;
-
+ 
+// ---------------------------------------------------------------------------
+//  Linhas que COMPÕEM os números do canal, mas NÃO aparecem no ranking
+// ---------------------------------------------------------------------------
+// O realizado / meta / % / falta de cada canal vem da tabela-resumo (colunas
+// H–N), NUNCA da soma das linhas de vendedor. Então esconder uma linha aqui
+// não mexe em nenhum total: ela continua compondo a meta e o realizado do
+// canal, só some da lista de nomes na tela.
+//
+// Caso de uso atual: o "Operador TVA" do Corporativo — a venda dele entra na
+// meta do canal, mas não deve aparecer no ranking exibido na TV.
+//
+// A comparação é feita sem acento e sem caixa ("Operador TVA", "OPERADOR TVA"
+// e "operador tva" casam igual). Para ocultar mais alguém, é só somar um
+// padrão nesta lista — nada mais no código precisa mudar.
+const VENDEDORES_OCULTOS = [
+  /operador\s*tva/i
+];
+ 
+function ehOculto(nome) {
+  const n = String(nome || "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")   // tira acento
+    .replace(/\s+/g, " ").trim();
+  return VENDEDORES_OCULTOS.some(rx => rx.test(n));
+}
+ 
 // ---------------------------------------------------------------------------
 //  Helpers de valor
 // ---------------------------------------------------------------------------
@@ -94,7 +119,7 @@ function num(v) {
   return isNaN(n) ? 0 : n;
 }
 const pctFrac = v => num(v) * 100;   // planilha guarda 0.5049 -> 50.49
-
+ 
 // Taxa de conversão: a planilha é inconsistente nessas células (às vezes texto
 // "0.54%", às vezes texto "0,54%", às vezes número 0,0054 com formato 0%).
 // Regra: se veio com "%", o número já está em pontos percentuais. Se veio como
@@ -107,7 +132,7 @@ function pctTaxa(v) {
   if (s.indexOf("%") >= 0) return n;      // "0,54%" -> 0.54
   return n <= 1 ? n * 100 : n;            // "0,0054" -> 0.54
 }
-
+ 
 function cel(m, linha, col) {
   if (!m || !m[linha]) return null;
   const v = m[linha][col];
@@ -117,7 +142,7 @@ function txt(m, linha, col) {
   const v = cel(m, linha, col);
   return typeof v === "string" ? v.trim() : (v === null || v === undefined ? "" : String(v));
 }
-
+ 
 // Uma string que é só número/percentual não serve como rótulo
 function ehRotulo(v) {
   if (typeof v !== "string") return false;
@@ -125,7 +150,7 @@ function ehRotulo(v) {
   if (!s) return false;
   return !/^[\d.,\s%R$+-]+$/.test(s);
 }
-
+ 
 // ---------------------------------------------------------------------------
 //  Busca por rótulo
 // ---------------------------------------------------------------------------
@@ -137,7 +162,7 @@ function linhaDoRotulo(m, col, regex, de) {
   }
   return -1;
 }
-
+ 
 // Valor numérico da coluna `colValor` na linha cujo rótulo (coluna `colRot`)
 // casa com o regex. `fallbackLinha` é o índice histórico (0-based).
 function porRotulo(m, colRot, regex, colValor, fallbackLinha, de) {
@@ -145,7 +170,7 @@ function porRotulo(m, colRot, regex, colValor, fallbackLinha, de) {
   if (r >= 0) return num(cel(m, r, colValor));
   return fallbackLinha != null ? num(cel(m, fallbackLinha, colValor)) : 0;
 }
-
+ 
 // Procura um cabeçalho em qualquer célula da matriz
 function acharCabecalho(m, regex) {
   for (let r = 0; r < m.length; r++) {
@@ -157,7 +182,7 @@ function acharCabecalho(m, regex) {
   }
   return null;
 }
-
+ 
 // ---------------------------------------------------------------------------
 //  Taxas de conversão (localizadas pelo cabeçalho, com fallback de endereço)
 // ---------------------------------------------------------------------------
@@ -165,19 +190,19 @@ function lerTaxa(m, regexCabecalho, colFallback, linhaFallback) {
   const h = acharCabecalho(m, regexCabecalho);
   const col  = h ? h.c : colFallback;
   const base = h ? h.r : linhaFallback;   // linha do cabeçalho (0-based)
-
+ 
   let meta = null, atual = null;
   for (let r = base + 1; r <= base + 6 && r < m.length; r++) {
     const linha = m[r] || [];
     const val = linha[col];
     if (val === null || val === undefined || val === "") continue;
-
+ 
     // rótulo da linha = primeira string "de verdade" à esquerda da coluna
     let rot = "";
     for (let c = col - 1; c >= 0 && c >= col - 4; c--) {
       if (ehRotulo(linha[c])) { rot = String(linha[c]).trim().toLowerCase(); break; }
     }
-
+ 
     if (/^meta/.test(rot))       { if (meta  === null) meta  = pctTaxa(val); }
     else if (/^atual/.test(rot)) { if (atual === null) atual = pctTaxa(val); }
     else if (meta  === null)     { meta  = pctTaxa(val); }
@@ -185,7 +210,7 @@ function lerTaxa(m, regexCabecalho, colFallback, linhaFallback) {
   }
   return { meta: meta || 0, atual: atual || 0 };
 }
-
+ 
 // ---------------------------------------------------------------------------
 //  Blocos de vendedores
 // ---------------------------------------------------------------------------
@@ -206,24 +231,30 @@ function blocosDeVendedores(m) {
   });
   return blocos;
 }
-
+ 
 // Lê as pessoas/linhas de um bloco. Para na linha de TOTAL do bloco — que é a
 // que NÃO tem nome mas TEM meta/vendido preenchidos. Linhas totalmente vazias
 // (espaçadores, que existiam no layout antigo) são puladas, não encerram.
+//
+// Linhas em VENDEDORES_OCULTOS são lidas e descartadas da lista: continuam
+// compondo os números do canal (que vêm do resumo, não daqui), mas não vão
+// pro ranking. Os nomes descartados ficam em `_ocultos` só como diagnóstico.
 function lerVendedores(m, ini, fim) {
   const out = [];
+  const ocultos = [];
   for (let r = ini; r < fim && r < m.length; r++) {
     const nome = txt(m, r, 0);
     const meta = num(cel(m, r, 1));
     const vend = num(cel(m, r, 2));
-
+ 
     if (!nome) {
       if (meta || vend) break;   // linha de TOTAL -> fim do bloco
       continue;                  // linha vazia de espaçamento -> segue
     }
     if (/^total/i.test(nome)) break;
     if (!meta && !vend) continue;
-
+    if (ehOculto(nome)) { ocultos.push(nome); continue; }   // compõe meta, não exibe
+ 
     const pct = meta > 0 ? (vend / meta) * 100 : 0;
     out.push({
       nome,
@@ -234,9 +265,11 @@ function lerVendedores(m, ini, fim) {
     });
   }
   out.sort((a, b) => b.valor - a.valor);
-  return out.slice(0, MAX_VENDEDORES);
+  const lista = out.slice(0, MAX_VENDEDORES);
+  lista._ocultos = ocultos;   // prop de array: JSON.stringify ignora
+  return lista;
 }
-
+ 
 // Histórico mensal da aba Dashboard. Cada canal é um bloco de 4 colunas
 // com um título na linha de cima ("REVENDA 2026", "CORPORATIVO 2026",
 // "DIGITAL 2026"/"B2C 2026"...) e "Mês | Atingido | Meta | %" logo abaixo.
@@ -247,7 +280,7 @@ function lerVendedores(m, ini, fim) {
 function historico(mHist, cfg, ateIdx) {
   const ABREV = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
   const IDX = { A:0,B:1,C:2,D:3,E:4,F:5,G:6,H:7,I:8,J:9,K:10,L:11,M:12,N:13,O:14,P:15,Q:16,R:17,S:18 };
-
+ 
   let colAting = null, colMeta = null;
   const linhaTitulo = mHist[0] || [];               // linha 2 da planilha = títulos dos blocos
   for (let c = 0; c < linhaTitulo.length; c++) {
@@ -258,7 +291,7 @@ function historico(mHist, cfg, ateIdx) {
   }
   const porLabel = colAting !== null;
   if (!porLabel) { colAting = IDX[cfg.histCols[0]]; colMeta = IDX[cfg.histCols[1]]; }
-
+ 
   const out = [];
   for (let i = 0; i <= ateIdx && i < 12; i++) {
     const linha = 2 + i;   // linha 0 = título · linha 1 = "Mês/Atingido/Meta/%" · dados a partir daqui
@@ -270,7 +303,7 @@ function historico(mHist, cfg, ateIdx) {
   out._porLabel = porLabel;   // diagnóstico, não vai pro JSON final
   return out;
 }
-
+ 
 // ---------------------------------------------------------------------------
 //  SHAREPOINT
 // ---------------------------------------------------------------------------
@@ -289,7 +322,7 @@ async function tokenGraph() {
   if (!res.ok) throw new Error(`Token Microsoft falhou (${res.status}): ${await res.text()}`);
   return (await res.json()).access_token;
 }
-
+ 
 // Lê um range específico de uma aba específica — nunca varre o arquivo inteiro,
 // então a restrição das 7 abas ocultas legadas não nos afeta.
 async function lerRange(token, aba, endereco) {
@@ -301,7 +334,7 @@ async function lerRange(token, aba, endereco) {
   if (!res.ok) throw new Error(`Leitura ${aba}!${endereco} falhou (${res.status}): ${await res.text()}`);
   return (await res.json()).values;
 }
-
+ 
 // ---------------------------------------------------------------------------
 //  Leitura da aba do mês
 // ---------------------------------------------------------------------------
@@ -318,7 +351,7 @@ function montar(mMes, mHist, mesIdx) {
   const lProjPct = linhaDoRotulo(mMes, 0, /^proje[çc][ãa]o\s*%/i);
   hero.projecao_pct = pctFrac(cel(mMes, lProjPct >= 0 ? lProjPct : 6, 1));
   hero.alcance_vs_previsto = hero.projecao_pct;
-
+ 
   /* ---- calendário do mês: rótulos na coluna D, valores na coluna E ----
      O bloco b2b vem primeiro ("Dias uteis (b2b)" / Trabalhados / Faltantes) e
      o b2c logo abaixo ("Dias (b2c)" / Trabalhados / Faltantes). Como os dois
@@ -338,21 +371,21 @@ function montar(mMes, mHist, mesIdx) {
       faltantes:   porRotulo(mMes, 3, /^faltantes/i,   4, 7, ancB2c >= 0 ? ancB2c : 0)
     }
   };
-
+ 
   /* ---- blocos de vendedores (Revenda / Corporativo / Digital / SDR) ---- */
   const blocos = blocosDeVendedores(mMes);
-
+ 
   const canais = CANAIS.map(cfg => {
     /* resumo do canal: linha em que a coluna H tem o rótulo do canal
        (aceita sinônimos — ver regexResumo em CANAIS) */
     let lin = linhaDoRotulo(mMes, 7, cfg.regexResumo);
     const resumoPorLabel = lin >= 0;
     if (lin < 0) lin = cfg.linhaCanal - 1;          // fallback histórico
-
+ 
     const realizado = num(cel(mMes, lin, 8));       // col I
     const falta     = num(cel(mMes, lin, 13));      // col N
     const d         = cfg.tipoDias === "b2c" ? dias.b2c : dias.b2b;
-
+ 
     /* vendedores: bloco cujo título casa com o canal (aceita sinônimos —
        ver regexBloco em CANAIS). Meses antigos (jan–jun/2026) têm TODO
        mundo (Revenda+Corporativo+Digital) num único bloco sem cabeçalho
@@ -363,7 +396,7 @@ function montar(mMes, mHist, mesIdx) {
        mês, os números do resumo (realizado/meta/%) continuam corretos. */
     const bloco = blocos.find(b => cfg.regexBloco.test(b.titulo));
     const vendedores = bloco ? lerVendedores(mMes, bloco.cab + 1, bloco.fim) : [];
-
+ 
     return {
       nome: cfg.nome,
       realizado,
@@ -378,24 +411,27 @@ function montar(mMes, mHist, mesIdx) {
       historico:    historico(mHist, cfg, mesIdx),
       vendedores,
       // diagnóstico: como cada pedaço foi localizado nesta consulta —
-      // útil pra saber, olhando o JSON, se algum rótulo mudou de novo
+      // útil pra saber, olhando o JSON, se algum rótulo mudou de novo.
+      // `ocultos` lista quem foi escondido DE PROPÓSITO (VENDEDORES_OCULTOS),
+      // pra não confundir com vendedor que sumiu por rótulo quebrado.
       _origem: {
         resumo:     resumoPorLabel ? "rotulo" : "fallback-linha-" + (lin + 1),
         vendedores: bloco ? { modo: "rotulo", bloco: bloco.titulo, linha: bloco.cab + 1 }
-                           : { modo: "sem-bloco-identificado" }
+                           : { modo: "sem-bloco-identificado" },
+        ocultos:    (vendedores._ocultos || [])
       }
     };
   });
   canais.forEach(c => { c.alcance_vs_previsto = c.projecao_pct; });
-
+ 
   const conversao = {
     b2c:  lerTaxa(mMes, /taxa\s*conv.*b2c/i,  12, 18),
     corp: lerTaxa(mMes, /taxa\s*conv.*corp/i, 13, 18)
   };
-
+ 
   return { hero, canais, conversao, dias };
 }
-
+ 
 async function lerPlanilha(aba, mesIdx) {
   const token = await tokenGraph();
   const [mMes, mHist] = await Promise.all([
@@ -407,7 +443,7 @@ async function lerPlanilha(aba, mesIdx) {
   ]);
   return montar(mMes, mHist, mesIdx);
 }
-
+ 
 // ---------------------------------------------------------------------------
 //  HANDLER
 // ---------------------------------------------------------------------------
@@ -419,10 +455,10 @@ function mesBR() {
   });
   return parseInt(f.format(new Date()), 10) - 1;   // 0 = janeiro
 }
-
+ 
 exports.handler = async function (event) {
   const qs = (event && event.queryStringParameters) || {};
-
+ 
   const aba = qs.mes || process.env.MES_ABA || ABAS_POR_MES[mesBR()];
   const mesIdx = ABAS_POR_MES.indexOf(aba) >= 0
     ? ABAS_POR_MES.indexOf(aba) : mesBR();
@@ -436,9 +472,9 @@ exports.handler = async function (event) {
       detail: String(e && e.message ? e.message : e)
     });
   }
-
+ 
   const { hero, canais, conversao, dias } = sp;
-
+ 
   return json(200, {
     atualizado_em: new Date().toISOString(),
     mes_vigente: aba,
@@ -446,7 +482,7 @@ exports.handler = async function (event) {
     fonte_rodape: "Fonte única: planilha GERAL 2026 (SharePoint)"
   });
 };
-
+ 
 function json(status, body) {
   return {
     statusCode: status,
@@ -457,11 +493,14 @@ function json(status, body) {
     body: JSON.stringify(body)
   };
 }
-
+ 
 // Exportado só para teste local (não usado pela Netlify)
 if (typeof module !== "undefined" && module.exports) {
   module.exports.montar = montar;
   module.exports.historico = historico;
   module.exports.linhaDoRotulo = linhaDoRotulo;
+  module.exports.lerVendedores = lerVendedores;
+  module.exports.ehOculto = ehOculto;
   module.exports.CANAIS = CANAIS;
+  module.exports.VENDEDORES_OCULTOS = VENDEDORES_OCULTOS;
 }
