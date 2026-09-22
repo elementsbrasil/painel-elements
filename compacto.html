@@ -416,6 +416,13 @@
   var URL_DADOS = '/.netlify/functions/painel-data';
   var wall = document.getElementById('wall');
 
+  /* Intervalo de atualização dos números, em milissegundos.
+     Ficava em 60s; passou pra 2 minutos — a planilha não muda de minuto em
+     minuto e cada carga é uma leitura no SharePoint via Graph, então 2 min
+     corta pela metade as chamadas sem que ninguém perceba defasagem na TV.
+     Mudar SÓ AQUI (não há outro setInterval de dados no arquivo). */
+  var INTERVALO_MS = 2 * 60 * 1000;
+
   /* ---------- Seletor de mês ----------
      Nomes de aba iguais aos de ABAS_POR_MES em painel-data.js — têm que
      casar exatamente, é o valor mandado em ?mes=. "" (Mês vigente) não manda
@@ -591,7 +598,10 @@
 
   /* ---------- Ranking COMPLETO de vendedores ----------
      Cada linha: nome · vendido / meta · barra (vendido ÷ meta) · %
-     Quem bateu a meta ganha selo ✓ e fica verde. */
+     Quem bateu a meta ganha selo ✓ e fica verde.
+     Linhas escondidas de propósito (ex.: "Operador TVA" no Corporativo) já
+     vêm filtradas do backend — VENDEDORES_OCULTOS em painel-data.js — e
+     continuam compondo a meta e o realizado do canal. Nada a fazer aqui. */
   function lista(itens){
     itens = itens || [];
     if (!itens.length) return '<ul class="lb"></ul>';
@@ -752,7 +762,7 @@
   }
 
   carregar();
-  setInterval(carregar, 60*1000);
+  setInterval(carregar, INTERVALO_MS);   // 2 minutos
 
   /* Rede de segurança: recarrega com cache-busting, preservando o mês */
   setTimeout(function(){
