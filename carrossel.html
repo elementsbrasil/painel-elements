@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Carrossel</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,Segoe UI,Arial,sans-serif}
+body.idle{cursor:none}
+.layer{position:fixed;inset:0;width:100vw;height:100vh;border:0;opacity:0;pointer-events:none;transition:opacity 1s ease;background:#000}
+.layer.on{opacity:1;pointer-events:auto}
+#vid iframe{width:100%;height:100%;border:0;pointer-events:none}
+#fs{position:fixed;right:16px;bottom:16px;z-index:20;width:48px;height:48px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;cursor:pointer;opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center}
+#fs.show{opacity:1}
+#fs svg{width:24px;height:24px}
+#hot{position:fixed;top:0;right:0;width:70px;height:70px;z-index:30}
+#pn{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
+#pn.open{display:flex}
+#box{background:#fff;color:#222;border-radius:12px;padding:20px 24px;width:min(460px,90vw);font-size:14px}
+#box h3{margin:0 0 12px;font-size:17px;font-weight:600}
+#box label{display:block;margin:10px 0 4px;color:#555}
+#box input{width:100%;box-sizing:border-box;padding:8px;border:1px solid #bbb;border-radius:6px;font-size:14px}
+#box .row{display:flex;gap:8px;margin-top:16px}
+#box button{padding:8px 14px;border:1px solid #888;border-radius:6px;background:#f4f4f4;cursor:pointer;font-size:14px}
+#box button.pri{background:#185FA5;color:#fff;border-color:#185FA5}
+#msg{margin-top:10px;color:#a32d2d;min-height:18px}
+#cfg{display:none}
+#dbg{position:fixed;left:8px;top:8px;z-index:50;background:rgba(0,0,0,.7);color:#0f0;font:12px monospace;padding:6px 8px;border-radius:4px;display:none;white-space:pre}
+</style>
+</head>
+<body>
+<iframe id="dash" class="layer" allow="fullscreen; autoplay" title="Dashboard"></iframe>
+<div id="vid" class="layer"><div id="yt"></div></div>
+<button id="fs" aria-label="Tela cheia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+<div id="hot"></div>
+<div id="dbg"></div>
+<div id="pn"><div id="box">
+<h3>Configuração</h3>
+<div id="lock"><label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="off"><div class="row"><button class="pri" id="ok">Entrar</button><button id="x1">Fechar</button></div></div>
+<div id="cfg">
+<label for="c1">URL do dashboard</label><input id="c1">
+<label for="c2">Link do vídeo do YouTube</label><input id="c2">
+<label for="c3">Tempo do dashboard na tela (segundos)</label><input id="c3" type="number" min="5">
+<label for="c4">Espera após recarregar o dashboard (segundos)</label><input id="c4" type="number" min="0">
+<div class="row"><button class="pri" id="sv">Salvar</button><button id="rs">Restaurar padrão</button><button id="x2">Fechar</button></div>
+</div>
+<div id="msg"></div>
+</div></div>
+<script>
+var DEF={dashUrl:'https://painel-video-wall.netlify.app/',videoUrl:'https://youtu.be/gzpJrDZCgDw',dashSec:60,settleSec:8,pin:'1234'};
+var cfg=load();
+function load(){var s={};try{s=JSON.parse(localStorage.getItem('carrossel_cfg')||'{}')}catch(e){}return Object.assign({},DEF,s)}
+function $(i){return document.getElementById(i)}
+var DBG=/[?&]debug/.test(location.search),dl=[];
+function log(m){if(!DBG)return;dl.push(new Date().toLocaleTimeString()+' '+m);dl=dl.slice(-8);$('dbg').style.display='block';$('dbg').textContent=dl.join('\n');console.log(m)}
+function vidId(u){var m=String(u).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/);return m?m[1]:(/^[\w-]{11}$/.test(u)?u:'')}
+function fresh(u){try{var x=new URL(u);x.searchParams.set('_r',Date.now());return x.href}catch(e){return u}}
+
+if(location.protocol==='file:')log('ATENCAO: file:// causa erro 153. Abra via http://localhost');
+if(/[?&]reset/.test(location.search)){try{localStorage.removeItem('carrossel_cfg')}catch(e){}cfg=Object.assign({},DEF);log('config salva APAGADA')}
+else{try{var sv=localStorage.getItem('carrossel_cfg');if(sv)log('ATENCAO: config salva no navegador sobrepoe o HTML: '+sv)}catch(e){}}
+var gen=0,timers=[],player=null,pReady=false,cur='',awaitingVid=false,ended=false,dashReady=false;
+function T(fn,ms){var g=gen;timers.push(setTimeout(function(){if(g===gen)fn()},ms))}
+function stopAll(){gen++;timers.forEach(clearTimeout);timers=[];awaitingVid=false;ended=false;dashReady=false}
+function show(w){$('dash').classList.toggle('on',w==='dash');$('vid').classList.toggle('on',w==='vid');cur=w}
+
+function loadDash(){
+  var g=gen;
+  return new Promise(function(res){
+    var f=$('dash'),done=false;
+    function fin(){if(done)return;done=true;res(g===gen)}
+    f.onload=function(){setTimeout(fin,cfg.settleSec*1000)};
+    f.src=fresh(cfg.dashUrl);
+    setTimeout(fin,30000+cfg.settleSec*1000);
+  });
+}
+
+function cycle(){
+  var g=gen;
+  loadDash().then(function(ok){
+    if(!ok||g!==gen)return;
+    show('dash');
+    if(vidId(cfg.videoUrl)&&pReady)T(playVideo,cfg.dashSec*1000);
+    else T(cycle,cfg.dashSec*1000);
+  });
+}
+
+function playVideo(){
+  awaitingVid=true;ended=false;dashReady=false;
+  log('tocando video');try{player.mute();player.seekTo(0,true);player.playVideo()}catch(e){log('falha playVideo')}
+  T(function(){if(cur!=='vid'){awaitingVid=false;try{player.pauseVideo()}catch(e){}cycle()}},30000);
+}
+
+function preloadDash(){
+  dashReady=false;
+  loadDash().then(function(ok){if(!ok)return;dashReady=true;if(ended)backToDash()});
+}
+
+function backToDash(){
+  ended=false;
+  show('dash');
+  T(function(){try{player.pauseVideo();player.seekTo(0,true)}catch(e){}},1500);
+  T(playVideo,cfg.dashSec*1000);
+}
+
+function onState(e){
+  var d=e.data;
+  if(d===1&&awaitingVid){
+    awaitingVid=false;show('vid');
+    var dur=0;try{dur=player.getDuration()}catch(x){}
+    var lead=cfg.settleSec+10;
+    T(preloadDash,Math.max(0,(dur-lead))*1000);
+  }
+  if(d===0&&cur==='vid'){
+    ended=true;
+    if(dashReady)backToDash();
+    else T(function(){if(ended)backToDash()},40000);
+  }
+}
+var ERR={2:'ID invalido',5:'erro do player HTML5',100:'video removido/privado',101:'incorporacao desativada pelo dono',150:'incorporacao desativada pelo dono',153:'sem referrer (abra por http/https, nao file://)'};
+function onErr(e){log('ERRO '+e.data+': '+(ERR[e.data]||'desconhecido'));pReady=false;if(cur==='vid'||awaitingVid){awaitingVid=false;stopAll();cycle()}}
+
+function initPlayer(){
+  var id=vidId(cfg.videoUrl);
+  if(!id||!window.YT||!YT.Player)return;
+  log('video ID: '+id);
+  player=new YT.Player('yt',{width:'100%',height:'100%',videoId:id,
+    playerVars:{origin:/^https?:/.test(location.protocol)?location.origin:undefined,autoplay:0,controls:0,disablekb:1,fs:0,rel:0,modestbranding:1,playsinline:1,iv_load_policy:3,mute:1},
+    events:{onReady:function(e){e.target.mute();pReady=true;log('player pronto')},onStateChange:function(e){log('estado '+e.data);onState(e)},onError:onErr}});
+}
+window.onYouTubeIframeAPIReady=initPlayer;
+var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);
+
+function applyCfg(){
+  stopAll();show('dash');
+  var id=vidId(cfg.videoUrl);
+  if(player&&pReady&&id){try{log('video ID: '+id);player.cueVideoById(id);player.mute()}catch(e){}}
+  else if(!player&&id)initPlayer();
+  cycle();
+}
+
+var fsb=$('fs'),hideT;
+function toggleFs(){
+  if(document.fullscreenElement)document.exitFullscreen();
+  else document.documentElement.requestFullscreen().catch(function(){});
+}
+fsb.onclick=toggleFs;
+document.addEventListener('keydown',function(e){if(e.key==='f'||e.key==='F')toggleFs()});
+function wake(){document.body.classList.remove('idle');fsb.classList.add('show');clearTimeout(hideT);hideT=setTimeout(function(){document.body.classList.add('idle');fsb.classList.remove('show')},3000)}
+['mousemove','touchstart','mousedown'].forEach(function(ev){document.addEventListener(ev,wake,{passive:true})});
+wake();
+
+var clicks=0,ct;
+$('hot').onclick=function(){clicks++;clearTimeout(ct);ct=setTimeout(function(){clicks=0},2000);if(clicks>=5){clicks=0;openPanel()}};
+function openPanel(){$('pn').classList.add('open');$('lock').style.display='block';$('cfg').style.display='none';$('pin').value='';$('msg').textContent='';$('pin').focus()}
+function closePanel(){$('pn').classList.remove('open')}
+$('x1').onclick=$('x2').onclick=closePanel;
+function unlock(){
+  if($('pin').value!==String(cfg.pin)){$('msg').textContent='PIN incorreto.';return}
+  $('lock').style.display='none';$('cfg').style.display='block';$('msg').textContent='';
+  $('c1').value=cfg.dashUrl;$('c2').value=cfg.videoUrl;$('c3').value=cfg.dashSec;$('c4').value=cfg.settleSec;
+}
+$('ok').onclick=unlock;
+$('pin').onkeydown=function(e){if(e.key==='Enter')unlock()};
+$('sv').onclick=function(){
+  var sec=parseInt($('c3').value,10),st=parseInt($('c4').value,10);
+  if(!$('c1').value.trim()){$('msg').textContent='Informe a URL do dashboard.';return}
+  if(!vidId($('c2').value.trim())){$('msg').textContent='Link do vídeo inválido.';return}
+  if(!(sec>=5)){$('msg').textContent='O tempo mínimo é 5 segundos.';return}
+  if(!(st>=0))st=DEF.settleSec;
+  cfg=Object.assign({},cfg,{dashUrl:$('c1').value.trim(),videoUrl:$('c2').value.trim(),dashSec:sec,settleSec:st});
+  try{localStorage.setItem('carrossel_cfg',JSON.stringify({dashUrl:cfg.dashUrl,videoUrl:cfg.videoUrl,dashSec:sec,settleSec:st}))}catch(e){}
+  closePanel();applyCfg();
+};
+$('rs').onclick=function(){try{localStorage.removeItem('carrossel_cfg')}catch(e){}cfg=Object.assign({},DEF);closePanel();applyCfg()};
+
+async function wl(){try{await navigator.wakeLock.request('screen')}catch(e){}}
+wl();document.addEventListener('visibilitychange',function(){if(!document.hidden)wl()});
+(function(){var n=new Date(),t=new Date(n);t.setHours(3,0,0,0);if(t<=n)t.setDate(t.getDate()+1);setTimeout(function(){location.reload()},t-n)})();
+
+cycle();
+</script>
+</body>
+</html>
